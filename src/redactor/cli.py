@@ -11,17 +11,15 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from redactor.pdf import redact_pdf
+from redactor import redact as redact_api
 from redactor.utils import (
     expand_term_variants,
     load_terms_from_file,
-    resolve_output_path,
-    validate_input_file,
 )
 
 app = typer.Typer(
     name="redactor",
-    help="Local PII redaction tool. Redact sensitive information from PDFs.",
+    help="Local PII redaction tool. Redact sensitive information from PDFs, images, and DOCX files.",
     no_args_is_help=True,
 )
 console = Console(stderr=True)
@@ -31,7 +29,7 @@ console = Console(stderr=True)
 def redact(
     file: Annotated[
         Path,
-        typer.Argument(help="Path to the file to redact"),
+        typer.Argument(help="Path to the file to redact (PDF, PNG, JPEG, DOCX)"),
     ],
     terms: Annotated[
         Optional[list[str]],
@@ -54,9 +52,16 @@ def redact(
         typer.Option(
             "--output",
             "-o",
-            help="Output file path (default: <input>_redacted.<ext>)",
+            help="Output file path (default: <input>_redacted_<timestamp>.<ext>)",
         ),
     ] = None,
+    ocr_engine: Annotated[
+        str,
+        typer.Option(
+            "--ocr-engine",
+            help="OCR engine for image files (easyocr or tesseract)",
+        ),
+    ] = "easyocr",
     json_output: Annotated[
         bool,
         typer.Option(
@@ -67,6 +72,7 @@ def redact(
 ) -> None:
     """Redact PII from a document.
 
+    Supports PDF, PNG, JPEG, TIFF, BMP, and DOCX files.
     Provide terms to redact via --redact flags or a --redact-file.
     The redacted file is saved alongside the original (or to --output).
     """
@@ -75,32 +81,27 @@ def redact(
     if terms:
         all_terms.extend(terms)
     if redact_file:
-        all_terms.extend(load_terms_from_file(redact_file))
+        try:
+            all_terms.extend(load_terms_from_file(redact_file))
+        except (FileNotFoundError, ValueError) as e:
+            _error(str(e), json_output)
+            raise typer.Exit(code=1)
 
     if not all_terms:
         _error("No redaction terms provided. Use --redact or --redact-file.", json_output)
         raise typer.Exit(code=1)
 
-    # Expand SSN variants (dashed, plain, spaced)
-    all_terms = expand_term_variants(all_terms)
-
-    # Validate input
+    # Perform redaction via the public API
     try:
-        input_path = validate_input_file(file)
+        result = redact_api(
+            file,
+            terms=all_terms,
+            output=output,
+            ocr_engine=ocr_engine,
+        )
     except (FileNotFoundError, ValueError) as e:
         _error(str(e), json_output)
         raise typer.Exit(code=1)
-
-    # Resolve output
-    try:
-        output_path = resolve_output_path(input_path, output)
-    except ValueError as e:
-        _error(str(e), json_output)
-        raise typer.Exit(code=1)
-
-    # Perform redaction
-    try:
-        result = redact_pdf(input_path, output_path, all_terms)
     except Exception as e:
         _error(f"Redaction failed: {e}", json_output)
         raise typer.Exit(code=1)
@@ -136,8 +137,10 @@ def redact(
             "metadata_cleared": result.metadata_cleared,
         }))
     else:
+        affected = result.pages_affected
+        scope = f"across {affected} page(s)" if affected > 0 else "in file"
         console.print(f"[green]Redacted {result.total_redactions} occurrence(s) "
-                      f"across {result.pages_affected} page(s).[/green]")
+                      f"{scope}.[/green]")
         if masked_terms:
             table = Table(title="Redaction Summary")
             table.add_column("Term", style="bold")

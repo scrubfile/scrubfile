@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from redactor import redact
-from redactor.pdf import RedactionResult, extract_text
+from redactor import RedactionResult, redact
+from redactor.pdf import extract_text
 
 
 class TestPublicApi:
