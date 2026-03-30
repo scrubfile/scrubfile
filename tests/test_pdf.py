@@ -7,7 +7,7 @@ from pathlib import Path
 import fitz
 import pytest
 
-from redactor.pdf import RedactionResult, extract_text, get_metadata, redact_pdf
+from scrubfile.pdf import RedactionResult, extract_text, get_metadata, redact_pdf
 
 
 class TestRedactPdf:

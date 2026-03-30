@@ -7,8 +7,8 @@ from pathlib import Path
 import fitz
 import pytest
 
-from redactor import redact, RedactionResult
-from redactor.pdf import extract_text
+from scrubfile import redact, RedactionResult
+from scrubfile.pdf import extract_text
 
 
 @pytest.fixture

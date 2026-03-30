@@ -1,11 +1,11 @@
-"""Redactor — Local PII redaction tool for documents."""
+"""Scrubfile — Scrub PII from PDFs, images, and DOCX files."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from redactor.utils import (
+from scrubfile.utils import (
     expand_term_variants,
     expand_thorough_variants,
     resolve_output_path,
@@ -98,7 +98,7 @@ def redact(
     suffix = input_path.suffix.lower()
 
     if suffix == ".pdf":
-        from redactor.pdf import redact_pdf
+        from scrubfile.pdf import redact_pdf
 
         r = redact_pdf(input_path, output_path, terms)
         return RedactionResult(
@@ -111,7 +111,7 @@ def redact(
         )
 
     elif suffix in _IMAGE_EXTENSIONS:
-        from redactor.image import redact_image
+        from scrubfile.image import redact_image
 
         r = redact_image(input_path, output_path, terms, ocr_engine=ocr_engine)
         return RedactionResult(
@@ -123,7 +123,7 @@ def redact(
         )
 
     elif suffix == ".docx":
-        from redactor.docx_redactor import redact_docx
+        from scrubfile.docx_redactor import redact_docx
 
         r = redact_docx(input_path, output_path, terms)
         return RedactionResult(
@@ -145,7 +145,7 @@ def _auto_detect_terms(
     ocr_engine: str,
 ) -> list[str]:
     """Extract text from document and detect PII terms automatically."""
-    from redactor.detector import detect_pii
+    from scrubfile.detector import detect_pii
 
     suffix = input_path.suffix.lower()
     text = _extract_text(input_path, suffix, ocr_engine)
@@ -171,11 +171,11 @@ def _auto_detect_terms(
 def _extract_text(input_path: Path, suffix: str, ocr_engine: str) -> str:
     """Extract text from a document for PII detection."""
     if suffix == ".pdf":
-        from redactor.pdf import extract_text
+        from scrubfile.pdf import extract_text
         return extract_text(input_path)
 
     elif suffix in _IMAGE_EXTENSIONS:
-        from redactor.ocr import get_ocr_provider
+        from scrubfile.ocr import get_ocr_provider
         from PIL import Image
 
         provider = get_ocr_provider(ocr_engine)

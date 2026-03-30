@@ -8,7 +8,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-from redactor.ocr import OCRProvider, OCRResult, get_ocr_provider
+from scrubfile.ocr import OCRProvider, OCRResult, get_ocr_provider
 
 
 @dataclass

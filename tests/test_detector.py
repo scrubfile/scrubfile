@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from redactor.detector import PIIDetection, detect_pii, SUPPORTED_ENTITY_TYPES
+from scrubfile.detector import PIIDetection, detect_pii, SUPPORTED_ENTITY_TYPES
 
 
 class TestDetectPii:

@@ -8,7 +8,7 @@ import pytest
 from docx import Document
 from PIL import Image, ImageDraw
 
-from redactor import RedactionResult, redact
+from scrubfile import RedactionResult, redact
 
 
 @pytest.fixture

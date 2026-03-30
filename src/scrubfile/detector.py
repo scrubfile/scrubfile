@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from presidio_analyzer import AnalyzerEngine, RecognizerResult
 
-from redactor.recognizers import get_custom_recognizers
+from scrubfile.recognizers import get_custom_recognizers
 
 
 @dataclass

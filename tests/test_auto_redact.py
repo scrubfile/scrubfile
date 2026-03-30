@@ -8,8 +8,8 @@ import fitz
 import pytest
 from docx import Document
 
-from redactor import RedactionResult, redact
-from redactor.pdf import extract_text
+from scrubfile import RedactionResult, redact
+from scrubfile.pdf import extract_text
 
 
 @pytest.fixture

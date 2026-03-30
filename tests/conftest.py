@@ -1,4 +1,4 @@
-"""Shared test fixtures for redactor tests."""
+"""Shared test fixtures for scrubfile tests."""
 
 from __future__ import annotations
 

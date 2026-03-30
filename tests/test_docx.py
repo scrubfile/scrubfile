@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from docx import Document
 
-from redactor.docx_redactor import redact_docx, DocxRedactionResult
+from scrubfile.docx_redactor import redact_docx, DocxRedactionResult
 
 
 def _create_test_docx(path: Path) -> Path:

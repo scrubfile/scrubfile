@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from PIL import Image, ImageDraw, ImageFont
 
-from redactor.image import redact_image, ImageRedactionResult
+from scrubfile.image import redact_image, ImageRedactionResult
 
 
 def _create_test_image(path: Path, texts: list[tuple[str, tuple[int, int]]]) -> Path:

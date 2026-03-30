@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from redactor.utils import (
+from scrubfile.utils import (
     expand_term_variants,
     expand_thorough_variants,
     load_terms_from_file,
@@ -35,7 +35,7 @@ class TestValidateInputFile:
             validate_input_file(txt)
 
     def test_file_too_large(self, tmp_path: Path, monkeypatch):
-        import redactor.utils as utils_mod
+        import scrubfile.utils as utils_mod
         monkeypatch.setattr(utils_mod, "MAX_FILE_SIZE_MB", 0.0001)
 
         pdf = tmp_path / "big.pdf"

@@ -1,4 +1,4 @@
-"""CLI entrypoint for the redactor tool."""
+"""CLI entrypoint for scrubfile."""
 
 from __future__ import annotations
 
@@ -11,15 +11,15 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from redactor import redact as redact_api
-from redactor.utils import (
+from scrubfile import redact as redact_api
+from scrubfile.utils import (
     expand_term_variants,
     load_terms_from_file,
 )
 
 app = typer.Typer(
-    name="redactor",
-    help="Local PII redaction tool. Redact sensitive information from PDFs, images, and DOCX files.",
+    name="scrubfile",
+    help="Scrub PII from PDFs, images, and DOCX files. Local-only. One command.",
     no_args_is_help=True,
 )
 console = Console(stderr=True)
