@@ -29,9 +29,10 @@ class TestPublicApi:
     def test_redact_default_output_path(self, golden_pdf: Path):
         result = redact(golden_pdf, terms=["John Doe"])
 
-        expected = golden_pdf.parent / "golden_redacted.pdf"
-        assert expected.exists()
-        assert result.output_path == str(expected)
+        # Output has timestamp: golden_redacted_YYYYMMDD_HHMMSS.pdf
+        outputs = list(golden_pdf.parent.glob("golden_redacted_*.pdf"))
+        assert len(outputs) >= 1
+        assert Path(result.output_path).exists()
 
     def test_redact_str_path(self, golden_pdf: Path, tmp_path: Path):
         output = tmp_path / "out.pdf"

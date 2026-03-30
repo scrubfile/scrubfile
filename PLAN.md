@@ -474,3 +474,6 @@ redactor test.pdf --auto --threshold 0.9  # more conservative
    - `--auto`, `--preview`, `--threshold` CLI flags
    - `mcp_server.py` — MCP tool server for direct LLM integration
    - Tests with known PII documents
+
+
+

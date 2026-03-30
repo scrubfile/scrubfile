@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from redactor.utils import (
+    expand_term_variants,
     load_terms_from_file,
     resolve_output_path,
     validate_input_file,
@@ -43,10 +44,15 @@ class TestValidateInputFile:
 
 
 class TestResolveOutputPath:
-    def test_default_output_name(self, tmp_path: Path):
+    def test_default_output_name_has_timestamp(self, tmp_path: Path):
         input_path = tmp_path / "report.pdf"
         result = resolve_output_path(input_path)
-        assert result == tmp_path / "report_redacted.pdf"
+        assert result.parent == tmp_path
+        assert result.name.startswith("report_redacted_")
+        assert result.suffix == ".pdf"
+        # Verify timestamp portion is 15 chars (YYYYMMDD_HHMMSS)
+        ts_part = result.stem.replace("report_redacted_", "")
+        assert len(ts_part) == 15
 
     def test_custom_output(self, tmp_path: Path):
         input_path = tmp_path / "report.pdf"
@@ -92,3 +98,46 @@ class TestLoadTermsFromFile:
         empty.write_text("# only comments\n\n")
         with pytest.raises(ValueError, match="No terms found"):
             load_terms_from_file(empty)
+
+
+class TestExpandTermVariants:
+    def test_ssn_dashed_expands(self):
+        result = expand_term_variants(["123-45-6789"])
+        assert "123-45-6789" in result
+        assert "123456789" in result
+        assert "123 45 6789" in result
+
+    def test_ssn_plain_expands(self):
+        result = expand_term_variants(["123456789"])
+        assert "123456789" in result
+        assert "123-45-6789" in result
+        assert "123 45 6789" in result
+
+    def test_ssn_spaced_expands(self):
+        result = expand_term_variants(["123 45 6789"])
+        assert "123 45 6789" in result
+        assert "123-45-6789" in result
+        assert "123456789" in result
+
+    def test_non_ssn_not_expanded(self):
+        result = expand_term_variants(["John Doe"])
+        assert result == ["John Doe"]
+
+    def test_mixed_terms(self):
+        result = expand_term_variants(["John Doe", "123-45-6789"])
+        assert "John Doe" in result
+        assert "123-45-6789" in result
+        assert "123456789" in result
+
+    def test_no_duplicates(self):
+        result = expand_term_variants(["123-45-6789", "123456789"])
+        # Both originals and their variants, but no dupes
+        assert len(result) == len(set(result))
+
+    def test_empty_list(self):
+        assert expand_term_variants([]) == []
+
+    def test_phone_number_not_treated_as_ssn(self):
+        # 10-digit phone numbers should not be expanded as SSN
+        result = expand_term_variants(["555-123-4567"])
+        assert result == ["555-123-4567"]

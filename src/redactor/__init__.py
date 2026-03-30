@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from redactor.pdf import RedactionResult, redact_pdf
-from redactor.utils import resolve_output_path, validate_input_file
+from redactor.utils import expand_term_variants, resolve_output_path, validate_input_file
 
 
 def redact(
@@ -33,6 +33,9 @@ def redact(
     """
     input_path = validate_input_file(file_path)
     output_path = resolve_output_path(input_path, output)
+
+    # Expand SSN variants (dashed, plain, spaced)
+    terms = expand_term_variants(terms)
 
     # Route by file type — Phase 1 supports PDF only
     suffix = input_path.suffix.lower()

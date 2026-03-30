@@ -13,6 +13,7 @@ from rich.table import Table
 
 from redactor.pdf import redact_pdf
 from redactor.utils import (
+    expand_term_variants,
     load_terms_from_file,
     resolve_output_path,
     validate_input_file,
@@ -79,6 +80,9 @@ def redact(
     if not all_terms:
         _error("No redaction terms provided. Use --redact or --redact-file.", json_output)
         raise typer.Exit(code=1)
+
+    # Expand SSN variants (dashed, plain, spaced)
+    all_terms = expand_term_variants(all_terms)
 
     # Validate input
     try:

@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-import os
+import re
+from datetime import datetime
 from pathlib import Path
 
 MAX_FILE_SIZE_MB = 100
@@ -38,7 +39,8 @@ def resolve_output_path(input_path: Path, output: str | Path | None = None) -> P
     if output is None:
         stem = input_path.stem
         suffix = input_path.suffix
-        return input_path.parent / f"{stem}_redacted{suffix}"
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        return input_path.parent / f"{stem}_redacted_{timestamp}{suffix}"
 
     out = Path(output)
 
@@ -72,3 +74,56 @@ def load_terms_from_file(path: str | Path) -> list[str]:
         raise ValueError(f"No terms found in file: {p}")
 
     return terms
+
+
+# Regex for SSN in various formats
+_SSN_DASHED = re.compile(r"^\d{3}-\d{2}-\d{4}$")
+_SSN_PLAIN = re.compile(r"^\d{9}$")
+_SSN_SPACED = re.compile(r"^\d{3} \d{2} \d{4}$")
+
+
+def expand_term_variants(terms: list[str]) -> list[str]:
+    """Expand terms to include common format variants.
+
+    For SSN-like terms, generates dashed, plain, and spaced versions.
+    Deduplicates while preserving order.
+    """
+    seen: set[str] = set()
+    expanded: list[str] = []
+
+    for term in terms:
+        if term in seen:
+            continue
+        seen.add(term)
+        expanded.append(term)
+
+        # Generate SSN variants
+        variants = _ssn_variants(term)
+        for v in variants:
+            if v not in seen:
+                seen.add(v)
+                expanded.append(v)
+
+    return expanded
+
+
+def _ssn_variants(term: str) -> list[str]:
+    """If term looks like an SSN, return all format variants."""
+    stripped = term.strip()
+
+    if _SSN_DASHED.match(stripped):
+        # "123-45-6789" → also search "123456789" and "123 45 6789"
+        digits = stripped.replace("-", "")
+        return [digits, f"{digits[:3]} {digits[3:5]} {digits[5:]}"]
+
+    if _SSN_PLAIN.match(stripped):
+        # "123456789" → also search "123-45-6789" and "123 45 6789"
+        d = stripped
+        return [f"{d[:3]}-{d[3:5]}-{d[5:]}", f"{d[:3]} {d[3:5]} {d[5:]}"]
+
+    if _SSN_SPACED.match(stripped):
+        # "123 45 6789" → also search "123-45-6789" and "123456789"
+        digits = stripped.replace(" ", "")
+        return [f"{digits[:3]}-{digits[3:5]}-{digits[5:]}", digits]
+
+    return []

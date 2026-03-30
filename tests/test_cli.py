@@ -56,8 +56,9 @@ class TestCliBasic:
             str(golden_pdf), "--redact", "John Doe",
         ])
         assert result.exit_code == 0
-        expected = golden_pdf.parent / "golden_redacted.pdf"
-        assert expected.exists()
+        # Output has timestamp: golden_redacted_YYYYMMDD_HHMMSS.pdf
+        outputs = list(golden_pdf.parent.glob("golden_redacted_*.pdf"))
+        assert len(outputs) >= 1
 
     def test_no_terms_exits_with_error(self, golden_pdf: Path):
         result = runner.invoke(app, [str(golden_pdf)])
