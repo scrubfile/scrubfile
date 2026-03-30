@@ -137,7 +137,37 @@ class TestExpandTermVariants:
     def test_empty_list(self):
         assert expand_term_variants([]) == []
 
-    def test_phone_number_not_treated_as_ssn(self):
-        # 10-digit phone numbers should not be expanded as SSN
+    def test_phone_dashed_expands(self):
         result = expand_term_variants(["555-123-4567"])
-        assert result == ["555-123-4567"]
+        assert "555-123-4567" in result
+        assert "5551234567" in result
+        assert "555.123.4567" in result
+        assert "555 123 4567" in result
+        assert "(555) 123-4567" in result
+        assert "(555)123-4567" in result
+
+    def test_phone_plain_expands(self):
+        result = expand_term_variants(["5551234567"])
+        assert "5551234567" in result
+        assert "555-123-4567" in result
+        assert "555.123.4567" in result
+
+    def test_phone_dotted_expands(self):
+        result = expand_term_variants(["555.123.4567"])
+        assert "555.123.4567" in result
+        assert "555-123-4567" in result
+        assert "5551234567" in result
+
+    def test_phone_parens_expands(self):
+        result = expand_term_variants(["(555) 123-4567"])
+        assert "(555) 123-4567" in result
+        assert "555-123-4567" in result
+        assert "5551234567" in result
+
+    def test_phone_no_duplicates(self):
+        result = expand_term_variants(["555-123-4567", "5551234567"])
+        assert len(result) == len(set(result))
+
+    def test_non_phone_not_expanded(self):
+        result = expand_term_variants(["Hello World"])
+        assert result == ["Hello World"]

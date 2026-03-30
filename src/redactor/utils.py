@@ -81,11 +81,18 @@ _SSN_DASHED = re.compile(r"^\d{3}-\d{2}-\d{4}$")
 _SSN_PLAIN = re.compile(r"^\d{9}$")
 _SSN_SPACED = re.compile(r"^\d{3} \d{2} \d{4}$")
 
+# Regex for US phone numbers in various formats (10 digits)
+_PHONE_DASHED = re.compile(r"^\d{3}-\d{3}-\d{4}$")          # 555-123-4567
+_PHONE_DOTTED = re.compile(r"^\d{3}\.\d{3}\.\d{4}$")        # 555.123.4567
+_PHONE_SPACED = re.compile(r"^\d{3} \d{3} \d{4}$")          # 555 123 4567
+_PHONE_PARENS = re.compile(r"^\(\d{3}\)\s?\d{3}-\d{4}$")    # (555)123-4567 or (555) 123-4567
+_PHONE_PLAIN = re.compile(r"^\d{10}$")                       # 5551234567
+
 
 def expand_term_variants(terms: list[str]) -> list[str]:
     """Expand terms to include common format variants.
 
-    For SSN-like terms, generates dashed, plain, and spaced versions.
+    For SSN-like and phone-like terms, generates all common format variants.
     Deduplicates while preserving order.
     """
     seen: set[str] = set()
@@ -97,9 +104,8 @@ def expand_term_variants(terms: list[str]) -> list[str]:
         seen.add(term)
         expanded.append(term)
 
-        # Generate SSN variants
-        variants = _ssn_variants(term)
-        for v in variants:
+        # Generate variants (SSN, phone)
+        for v in _ssn_variants(term) + _phone_variants(term):
             if v not in seen:
                 seen.add(v)
                 expanded.append(v)
@@ -112,18 +118,49 @@ def _ssn_variants(term: str) -> list[str]:
     stripped = term.strip()
 
     if _SSN_DASHED.match(stripped):
-        # "123-45-6789" → also search "123456789" and "123 45 6789"
         digits = stripped.replace("-", "")
         return [digits, f"{digits[:3]} {digits[3:5]} {digits[5:]}"]
 
     if _SSN_PLAIN.match(stripped):
-        # "123456789" → also search "123-45-6789" and "123 45 6789"
         d = stripped
         return [f"{d[:3]}-{d[3:5]}-{d[5:]}", f"{d[:3]} {d[3:5]} {d[5:]}"]
 
     if _SSN_SPACED.match(stripped):
-        # "123 45 6789" → also search "123-45-6789" and "123456789"
         digits = stripped.replace(" ", "")
         return [f"{digits[:3]}-{digits[3:5]}-{digits[5:]}", digits]
 
     return []
+
+
+def _phone_variants(term: str) -> list[str]:
+    """If term looks like a US phone number, return all format variants."""
+    stripped = term.strip()
+
+    # Extract 10 digits from any recognized phone format
+    digits: str | None = None
+
+    if _PHONE_PLAIN.match(stripped):
+        digits = stripped
+    elif _PHONE_DASHED.match(stripped):
+        digits = stripped.replace("-", "")
+    elif _PHONE_DOTTED.match(stripped):
+        digits = stripped.replace(".", "")
+    elif _PHONE_SPACED.match(stripped):
+        digits = stripped.replace(" ", "")
+    elif _PHONE_PARENS.match(stripped):
+        digits = re.sub(r"[^0-9]", "", stripped)
+
+    if digits is None or len(digits) != 10:
+        return []
+
+    a, b, c = digits[:3], digits[3:6], digits[6:]
+    variants = [
+        digits,              # 5551234567
+        f"{a}-{b}-{c}",     # 555-123-4567
+        f"{a}.{b}.{c}",     # 555.123.4567
+        f"{a} {b} {c}",     # 555 123 4567
+        f"({a}) {b}-{c}",   # (555) 123-4567
+        f"({a}){b}-{c}",    # (555)123-4567
+    ]
+    # Return only variants that aren't the original term
+    return [v for v in variants if v != stripped]
