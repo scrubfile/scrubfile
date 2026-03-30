@@ -25,9 +25,13 @@ _IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp"}
 
 def redact(
     file_path: str | Path,
-    terms: list[str],
+    terms: list[str] | None = None,
     output: str | Path | None = None,
     ocr_engine: str = "easyocr",
+    auto: bool = False,
+    threshold: float = 0.7,
+    entity_types: list[str] | None = None,
+    preview: bool = False,
 ) -> RedactionResult:
     """Redact PII terms from a document.
 
@@ -39,6 +43,10 @@ def redact(
         terms: List of PII strings to search for and redact.
         output: Optional output path. Defaults to <input>_redacted_<timestamp>.<ext>.
         ocr_engine: OCR engine for image files ("easyocr" or "tesseract").
+        auto: If True, auto-detect PII using NLP (Presidio + spaCy).
+        threshold: Confidence threshold for auto-detection (0.0-1.0). Default 0.7.
+        entity_types: Entity types to detect in auto mode (e.g. ["PERSON", "US_SSN"]).
+        preview: If True with auto=True, return detections without redacting.
 
     Returns:
         RedactionResult with details about what was redacted.
@@ -50,8 +58,28 @@ def redact(
     input_path = validate_input_file(file_path)
     output_path = resolve_output_path(input_path, output)
 
-    # Expand SSN/phone variants
-    terms = expand_term_variants(terms)
+    # Auto-detect PII if requested
+    if auto:
+        auto_terms = _auto_detect_terms(input_path, threshold, entity_types, ocr_engine)
+        if terms:
+            # Combine explicit + auto-detected terms
+            all_terms = list(set(expand_term_variants(terms)) | set(auto_terms))
+        else:
+            all_terms = auto_terms
+
+        if preview:
+            return RedactionResult(
+                input_path=str(input_path),
+                output_path=str(output_path),
+                total_redactions=len(all_terms),
+                terms_found={t: 1 for t in all_terms},
+                metadata_cleared=False,
+            )
+        terms = all_terms
+    elif terms:
+        terms = expand_term_variants(terms)
+    else:
+        raise ValueError("Provide terms to redact, or use auto=True for auto-detection.")
 
     suffix = input_path.suffix.lower()
 
@@ -94,3 +122,63 @@ def redact(
 
     else:
         raise ValueError(f"Unsupported file type: {suffix}")
+
+
+def _auto_detect_terms(
+    input_path: Path,
+    threshold: float,
+    entity_types: list[str] | None,
+    ocr_engine: str,
+) -> list[str]:
+    """Extract text from document and detect PII terms automatically."""
+    from redactor.detector import detect_pii
+
+    suffix = input_path.suffix.lower()
+    text = _extract_text(input_path, suffix, ocr_engine)
+
+    detections = detect_pii(
+        text=text,
+        threshold=threshold,
+        entity_types=entity_types,
+    )
+
+    # Deduplicate detected terms
+    seen: set[str] = set()
+    terms: list[str] = []
+    for d in detections:
+        t = d.text.strip()
+        if t and t not in seen:
+            seen.add(t)
+            terms.append(t)
+
+    return terms
+
+
+def _extract_text(input_path: Path, suffix: str, ocr_engine: str) -> str:
+    """Extract text from a document for PII detection."""
+    if suffix == ".pdf":
+        from redactor.pdf import extract_text
+        return extract_text(input_path)
+
+    elif suffix in _IMAGE_EXTENSIONS:
+        from redactor.ocr import get_ocr_provider
+        from PIL import Image
+
+        provider = get_ocr_provider(ocr_engine)
+        image = Image.open(str(input_path))
+        results = provider.extract(image)
+        return " ".join(r.text for r in results)
+
+    elif suffix == ".docx":
+        from docx import Document as DocxDocument
+
+        doc = DocxDocument(str(input_path))
+        paragraphs = [p.text for p in doc.paragraphs]
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    paragraphs.append(cell.text)
+        return "\n".join(paragraphs)
+
+    else:
+        raise ValueError(f"Cannot extract text from: {suffix}")

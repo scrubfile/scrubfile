@@ -62,6 +62,34 @@ def redact(
             help="OCR engine for image files (easyocr or tesseract)",
         ),
     ] = "easyocr",
+    auto: Annotated[
+        bool,
+        typer.Option(
+            "--auto",
+            help="Auto-detect PII using NLP (no manual terms needed)",
+        ),
+    ] = False,
+    threshold: Annotated[
+        float,
+        typer.Option(
+            "--threshold",
+            help="Confidence threshold for auto-detection (0.0-1.0)",
+        ),
+    ] = 0.7,
+    entity_types: Annotated[
+        Optional[str],
+        typer.Option(
+            "--types",
+            help="Comma-separated entity types for auto mode (e.g. PERSON,US_SSN,EMAIL_ADDRESS)",
+        ),
+    ] = None,
+    preview: Annotated[
+        bool,
+        typer.Option(
+            "--preview",
+            help="Preview auto-detected PII without redacting",
+        ),
+    ] = False,
     json_output: Annotated[
         bool,
         typer.Option(
@@ -73,8 +101,7 @@ def redact(
     """Redact PII from a document.
 
     Supports PDF, PNG, JPEG, TIFF, BMP, and DOCX files.
-    Provide terms to redact via --redact flags or a --redact-file.
-    The redacted file is saved alongside the original (or to --output).
+    Provide terms via --redact / --redact-file, or use --auto for NLP-based detection.
     """
     # Collect all terms
     all_terms: list[str] = []
@@ -87,17 +114,24 @@ def redact(
             _error(str(e), json_output)
             raise typer.Exit(code=1)
 
-    if not all_terms:
-        _error("No redaction terms provided. Use --redact or --redact-file.", json_output)
+    if not all_terms and not auto:
+        _error("No redaction terms provided. Use --redact, --redact-file, or --auto.", json_output)
         raise typer.Exit(code=1)
+
+    # Parse entity types if provided
+    types_list = [t.strip() for t in entity_types.split(",")] if entity_types else None
 
     # Perform redaction via the public API
     try:
         result = redact_api(
             file,
-            terms=all_terms,
+            terms=all_terms if all_terms else None,
             output=output,
             ocr_engine=ocr_engine,
+            auto=auto,
+            threshold=threshold,
+            entity_types=types_list,
+            preview=preview,
         )
     except (FileNotFoundError, ValueError) as e:
         _error(str(e), json_output)
@@ -105,6 +139,30 @@ def redact(
     except Exception as e:
         _error(f"Redaction failed: {e}", json_output)
         raise typer.Exit(code=1)
+
+    # Preview mode — show detections without redacting
+    if preview and auto:
+        if json_output:
+            print(json.dumps({
+                "status": "preview",
+                "input": str(result.input_path),
+                "detections": len(result.terms_found),
+                "entities": [
+                    {"type": "AUTO", "text": f"[DETECTED-{i+1}]"}
+                    for i in range(len(result.terms_found))
+                ],
+            }))
+        else:
+            console.print(f"[cyan]Preview: {len(result.terms_found)} PII entities detected.[/cyan]")
+            if result.terms_found:
+                table = Table(title="Detected PII (Preview)")
+                table.add_column("#", style="dim")
+                table.add_column("Type", style="bold")
+                for i, term in enumerate(result.terms_found.keys()):
+                    table.add_row(str(i + 1), f"[DETECTED-{i+1}]")
+                console.print(table)
+            console.print("[dim]No changes made. Remove --preview to redact.[/dim]")
+        raise typer.Exit(code=0)
 
     # Output results
     if result.total_redactions == 0:
