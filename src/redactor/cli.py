@@ -83,6 +83,13 @@ def redact(
             help="Comma-separated entity types for auto mode (e.g. PERSON,US_SSN,EMAIL_ADDRESS)",
         ),
     ] = None,
+    thorough: Annotated[
+        bool,
+        typer.Option(
+            "--thorough",
+            help="Also redact name fragments and initials (e.g. 'John Doe' also redacts 'John', 'Doe', 'J. Doe'). More aggressive, may increase false positives.",
+        ),
+    ] = False,
     preview: Annotated[
         bool,
         typer.Option(
@@ -132,6 +139,7 @@ def redact(
             threshold=threshold,
             entity_types=types_list,
             preview=preview,
+            thorough=thorough,
         )
     except (FileNotFoundError, ValueError) as e:
         _error(str(e), json_output)

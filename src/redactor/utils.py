@@ -116,6 +116,57 @@ def expand_term_variants(terms: list[str]) -> list[str]:
     return expanded
 
 
+def expand_thorough_variants(terms: list[str], min_length: int = 3) -> list[str]:
+    """Expand terms to include individual components for thorough redaction.
+
+    For multi-word terms like "John Doe", also adds "John" and "Doe" as
+    separate search terms. Also adds common name fragments: initials,
+    first N characters (prefixes >= min_length).
+
+    This catches residual inference attacks where partial fragments
+    (e.g., "J. Doe", "Dr. Joh", first name alone) remain in the document
+    and can be recombined to identify the person.
+
+    Use with caution — increases false positives. "John" will match
+    "Johnson", "St. John's", etc.
+
+    Args:
+        terms: Original list of terms.
+        min_length: Minimum character length for a fragment to be included.
+            Default 3 to avoid single-letter matches.
+    """
+    # Start with standard expansion
+    expanded = expand_term_variants(terms)
+    seen = set(expanded)
+
+    for term in terms:
+        words = term.strip().split()
+        if len(words) < 2:
+            continue
+
+        for word in words:
+            word = word.strip(".,;:!?()\"'")
+            if len(word) >= min_length and word not in seen:
+                seen.add(word)
+                expanded.append(word)
+
+        # Add initials pattern: "J. Doe", "J Doe"
+        if len(words) >= 2:
+            first_initial = words[0][0]
+            last = words[-1]
+            variants = [
+                f"{first_initial}. {last}",    # "J. Doe"
+                f"{first_initial} {last}",     # "J Doe"
+                f"{first_initial}.{last}",     # "J.Doe"
+            ]
+            for v in variants:
+                if len(v) >= min_length and v not in seen:
+                    seen.add(v)
+                    expanded.append(v)
+
+    return expanded
+
+
 def _ssn_variants(term: str) -> list[str]:
     """If term looks like an SSN, return all format variants."""
     stripped = term.strip()

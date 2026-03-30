@@ -5,7 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from redactor.utils import expand_term_variants, resolve_output_path, validate_input_file
+from redactor.utils import (
+    expand_term_variants,
+    expand_thorough_variants,
+    resolve_output_path,
+    validate_input_file,
+)
 
 
 @dataclass
@@ -32,6 +37,7 @@ def redact(
     threshold: float = 0.7,
     entity_types: list[str] | None = None,
     preview: bool = False,
+    thorough: bool = False,
 ) -> RedactionResult:
     """Redact PII terms from a document.
 
@@ -47,6 +53,9 @@ def redact(
         threshold: Confidence threshold for auto-detection (0.0-1.0). Default 0.7.
         entity_types: Entity types to detect in auto mode (e.g. ["PERSON", "US_SSN"]).
         preview: If True with auto=True, return detections without redacting.
+        thorough: If True, also redact individual name components and fragments
+            to prevent residual inference attacks. E.g., "John Doe" also redacts
+            "John", "Doe", "J. Doe". Increases false positives.
 
     Returns:
         RedactionResult with details about what was redacted.
@@ -58,14 +67,19 @@ def redact(
     input_path = validate_input_file(file_path)
     output_path = resolve_output_path(input_path, output)
 
+    # Choose expansion strategy
+    _expand = expand_thorough_variants if thorough else expand_term_variants
+
     # Auto-detect PII if requested
     if auto:
         auto_terms = _auto_detect_terms(input_path, threshold, entity_types, ocr_engine)
         if terms:
-            # Combine explicit + auto-detected terms
-            all_terms = list(set(expand_term_variants(terms)) | set(auto_terms))
+            all_terms = list(set(_expand(terms)) | set(auto_terms))
         else:
             all_terms = auto_terms
+        # In thorough mode, also expand auto-detected terms
+        if thorough:
+            all_terms = expand_thorough_variants(all_terms)
 
         if preview:
             return RedactionResult(
@@ -77,7 +91,7 @@ def redact(
             )
         terms = all_terms
     elif terms:
-        terms = expand_term_variants(terms)
+        terms = _expand(terms)
     else:
         raise ValueError("Provide terms to redact, or use auto=True for auto-detection.")
 

@@ -8,6 +8,7 @@ import pytest
 
 from redactor.utils import (
     expand_term_variants,
+    expand_thorough_variants,
     load_terms_from_file,
     resolve_output_path,
     validate_input_file,
@@ -179,3 +180,53 @@ class TestExpandTermVariants:
     def test_non_phone_not_expanded(self):
         result = expand_term_variants(["Hello World"])
         assert result == ["Hello World"]
+
+
+class TestExpandThoroughVariants:
+    def test_splits_multi_word_name(self):
+        result = expand_thorough_variants(["John Doe"])
+        assert "John Doe" in result
+        assert "John" in result
+        assert "Doe" in result
+
+    def test_adds_initial_variants(self):
+        result = expand_thorough_variants(["John Doe"])
+        assert "J. Doe" in result
+        assert "J Doe" in result
+
+    def test_skips_short_fragments(self):
+        result = expand_thorough_variants(["Al Bo"])
+        # "Al" and "Bo" are only 2 chars, below min_length=3
+        assert "Al" not in result
+        assert "Bo" not in result
+
+    def test_custom_min_length(self):
+        result = expand_thorough_variants(["Al Bo"], min_length=2)
+        assert "Al" in result
+        assert "Bo" in result
+
+    def test_single_word_not_split(self):
+        result = expand_thorough_variants(["Aniket"])
+        # Single word — nothing to split
+        assert result == expand_term_variants(["Aniket"])
+
+    def test_three_word_name(self):
+        result = expand_thorough_variants(["Maria Sofia Garcia"])
+        assert "Maria" in result
+        assert "Sofia" in result
+        assert "Garcia" in result
+        assert "M. Garcia" in result
+
+    def test_includes_ssn_phone_variants(self):
+        # Thorough should still include SSN/phone expansion
+        result = expand_thorough_variants(["123-45-6789"])
+        assert "123456789" in result
+
+    def test_no_duplicates(self):
+        result = expand_thorough_variants(["John Doe", "John Smith"])
+        assert len(result) == len(set(result))
+
+    def test_deduplicates_across_terms(self):
+        result = expand_thorough_variants(["John Doe", "John Smith"])
+        # "John" should appear only once
+        assert result.count("John") == 1
