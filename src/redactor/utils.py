@@ -60,7 +60,10 @@ def resolve_output_path(input_path: Path, output: str | Path | None = None) -> P
 
 def load_terms_from_file(path: str | Path) -> list[str]:
     """Load redaction terms from a text file, one per line."""
-    p = Path(path).resolve()
+    p = Path(path)
+    if p.is_symlink():
+        raise ValueError(f"Terms file is a symlink, refusing to read: {p}")
+    p = p.resolve()
     if not p.exists():
         raise FileNotFoundError(f"Terms file not found: {p}")
 

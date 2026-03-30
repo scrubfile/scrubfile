@@ -129,6 +129,21 @@ class TestOutputValidity:
         assert output_size < input_size * 3  # generous upper bound
 
 
+class TestFilePermissions:
+    """Verify output files have restricted permissions."""
+
+    def test_output_is_owner_only(self, golden_pdf: Path, tmp_path: Path):
+        output = tmp_path / "out.pdf"
+        redact_pdf(golden_pdf, output, ["John Doe"])
+
+        import stat
+        mode = output.stat().st_mode
+        assert not (mode & stat.S_IRGRP), "Group should not have read permission"
+        assert not (mode & stat.S_IROTH), "Others should not have read permission"
+        assert (mode & stat.S_IRUSR), "Owner should have read permission"
+        assert (mode & stat.S_IWUSR), "Owner should have write permission"
+
+
 class TestRedactionResult:
     """Verify the result dataclass is populated correctly."""
 

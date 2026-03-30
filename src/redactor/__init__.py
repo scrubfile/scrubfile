@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 from redactor.pdf import RedactionResult, redact_pdf
 from redactor.utils import expand_term_variants, resolve_output_path, validate_input_file

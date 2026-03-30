@@ -118,6 +118,12 @@ def redact(
             console.print("[yellow]No matches found for the given terms.[/yellow]")
         raise typer.Exit(code=2)
 
+    # Mask PII terms in output — the tool should not echo sensitive data
+    masked_terms = {
+        f"[TERM-{i+1}]": count
+        for i, (term, count) in enumerate(result.terms_found.items())
+    }
+
     if json_output:
         print(json.dumps({
             "status": "success",
@@ -125,18 +131,19 @@ def redact(
             "output": str(result.output_path),
             "redactions": result.total_redactions,
             "pages_affected": result.pages_affected,
-            "terms_found": result.terms_found,
+            "terms_matched": len(result.terms_found),
+            "term_counts": masked_terms,
             "metadata_cleared": result.metadata_cleared,
         }))
     else:
         console.print(f"[green]Redacted {result.total_redactions} occurrence(s) "
                       f"across {result.pages_affected} page(s).[/green]")
-        if result.terms_found:
+        if masked_terms:
             table = Table(title="Redaction Summary")
             table.add_column("Term", style="bold")
             table.add_column("Occurrences", justify="right")
-            for term, count in result.terms_found.items():
-                table.add_row(term, str(count))
+            for label, count in masked_terms.items():
+                table.add_row(label, str(count))
             console.print(table)
         console.print(f"Output: {result.output_path}")
         console.print("[dim]Metadata cleared.[/dim]")

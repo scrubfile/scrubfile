@@ -89,7 +89,10 @@ class TestCliJsonOutput:
         assert data["status"] == "success"
         assert data["redactions"] >= 3
         assert data["pages_affected"] == 2
-        assert "John Doe" in data["terms_found"]
+        assert data["terms_matched"] >= 1
+        # PII terms should be masked, not echoed back
+        assert "John Doe" not in json.dumps(data)
+        assert "[TERM-1]" in json.dumps(data)
         assert data["metadata_cleared"] is True
 
     def test_json_no_match(self, golden_pdf: Path, tmp_path: Path):
@@ -122,8 +125,11 @@ class TestCliJsonOutput:
         ])
         assert result.exit_code == 0
         data = json.loads(result.stdout)
-        assert "John Doe" in data["terms_found"]
-        assert "Jane Smith" in data["terms_found"]
+        assert data["terms_matched"] == 2
+        # PII should NOT appear in output
+        raw = json.dumps(data)
+        assert "John Doe" not in raw
+        assert "Jane Smith" not in raw
 
 
 class TestCliCombinedTermSources:
@@ -140,5 +146,8 @@ class TestCliCombinedTermSources:
         ])
         assert result.exit_code == 0
         data = json.loads(result.stdout)
-        assert "Jane Smith" in data["terms_found"]
-        assert "John Doe" in data["terms_found"]
+        # Terms from both sources should be found, but masked
+        assert data["terms_matched"] >= 2
+        raw = json.dumps(data)
+        assert "Jane Smith" not in raw
+        assert "John Doe" not in raw

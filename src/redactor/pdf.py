@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -62,6 +63,9 @@ def redact_pdf(
     # Save with garbage collection to remove orphaned objects
     doc.save(str(output_path), garbage=3, deflate=True)
     doc.close()
+
+    # Restrict output to owner-only (rw-------) to protect sensitive content
+    os.chmod(str(output_path), 0o600)
 
     return RedactionResult(
         input_path=str(input_path),

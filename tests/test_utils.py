@@ -99,6 +99,14 @@ class TestLoadTermsFromFile:
         with pytest.raises(ValueError, match="No terms found"):
             load_terms_from_file(empty)
 
+    def test_rejects_symlink_terms_file(self, tmp_path: Path):
+        target = tmp_path / "real_terms.txt"
+        target.write_text("John Doe\n")
+        link = tmp_path / "link_terms.txt"
+        link.symlink_to(target)
+        with pytest.raises(ValueError, match="symlink"):
+            load_terms_from_file(link)
+
 
 class TestExpandTermVariants:
     def test_ssn_dashed_expands(self):
