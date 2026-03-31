@@ -39,6 +39,7 @@ def pii_docx(tmp_path: Path) -> Path:
     return tmp_path / "pii.docx"
 
 
+@pytest.mark.slow
 class TestAutoRedactPdf:
     def test_auto_detects_and_redacts(self, pii_pdf: Path, tmp_path: Path):
         output = tmp_path / "out.pdf"
@@ -102,6 +103,7 @@ class TestAutoRedactPdf:
         assert "john.smith@example.com" not in text
 
 
+@pytest.mark.slow
 class TestAutoRedactDocx:
     def test_auto_detects_in_docx(self, pii_docx: Path, tmp_path: Path):
         output = tmp_path / "out.docx"
@@ -119,6 +121,7 @@ class TestAutoRedactDocx:
         assert "john.smith@example.com" not in full_text
 
 
+@pytest.mark.slow
 class TestNoTermsNoAuto:
     def test_raises_without_terms_or_auto(self, pii_pdf: Path, tmp_path: Path):
         output = tmp_path / "out.pdf"

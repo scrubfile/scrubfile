@@ -1,0 +1,44 @@
+name: Full Tests
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly Monday 6am UTC
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Get spaCy data path
+        id: spacy-path
+        run: |
+          echo "path=$(python -c 'import spacy; print(spacy.util.get_data_path())')" >> $GITHUB_OUTPUT
+
+      - name: Cache ML models
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.EasyOCR
+            ~/.cache/torch
+            ${{ steps.spacy-path.outputs.path }}
+          key: ${{ runner.os }}-py${{ matrix.python-version }}-models-v1
+
+      - name: Download spaCy model
+        run: python -m spacy download en_core_web_lg
+
+      - name: Run all tests
+        run: pytest tests/ --cov=scrubfile --cov-report=xml -v

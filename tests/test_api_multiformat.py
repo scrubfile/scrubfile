@@ -40,6 +40,7 @@ class TestMultiFormatApi:
         assert result.total_redactions >= 3
         assert output.exists()
 
+    @pytest.mark.slow
     def test_redact_image(self, test_png: Path, tmp_path: Path):
         output = tmp_path / "out.png"
         result = redact(test_png, terms=["Hello"], output=output)
@@ -61,6 +62,7 @@ class TestMultiFormatApi:
         with pytest.raises(ValueError, match="Unsupported file type"):
             redact(txt, terms=["hello"])
 
+    @pytest.mark.slow
     def test_ocr_engine_parameter(self, test_png: Path, tmp_path: Path):
         output = tmp_path / "out.png"
         # Should work with default easyocr

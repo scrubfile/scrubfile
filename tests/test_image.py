@@ -35,6 +35,7 @@ def text_image(tmp_path: Path) -> Path:
     )
 
 
+@pytest.mark.slow
 class TestImageRedaction:
     def test_returns_result(self, text_image: Path, tmp_path: Path):
         output = tmp_path / "out.png"
@@ -98,6 +99,7 @@ class TestImageRedaction:
         assert output.exists()
 
 
+@pytest.mark.slow
 class TestImageOutputValidity:
     def test_output_is_valid_image(self, text_image: Path, tmp_path: Path):
         output = tmp_path / "out.png"

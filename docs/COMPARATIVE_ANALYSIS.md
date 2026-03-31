@@ -1,12 +1,12 @@
 # Comparative Analysis: PII Redaction Tools (2025-2026)
 
-How does Redactor compare to existing tools for removing personally identifiable information from documents? This page covers every major option — open-source, cloud, desktop, and developer tools — with honest trade-offs.
+How does Scrubfile compare to existing tools for removing personally identifiable information from documents? This page covers every major option — open-source, cloud, desktop, and developer tools — with honest trade-offs.
 
 ---
 
 ## The Short Version
 
-No other single tool does what Redactor does: **multi-format document redaction (PDF + images + DOCX) with ML auto-detection, running 100% locally, with CLI + Python API interfaces.**
+No other single tool does what Scrubfile does: **multi-format document redaction (PDF + images + DOCX) with ML auto-detection, running 100% locally, with CLI + Python API interfaces.**
 
 - Open-source detectors (Presidio, scrubadub) find PII in text strings but can't produce redacted PDFs or DOCX files.
 - Cloud APIs (Google DLP, AWS Comprehend) are powerful but your data leaves your machine.
@@ -19,7 +19,7 @@ No other single tool does what Redactor does: **multi-format document redaction 
 
 ### Feature Matrix
 
-| Capability | Redactor | Presidio | scrubadub | Google DLP | AWS Comprehend | Adobe Acrobat | Foxit Editor |
+| Capability | Scrubfile | Presidio | scrubadub | Google DLP | AWS Comprehend | Adobe Acrobat | Foxit Editor |
 |:-----------|:--------:|:--------:|:---------:|:----------:|:--------------:|:------------:|:------------:|
 | **PDF redaction** | Yes | No | No | No | No | Yes | Yes |
 | **Image redaction** | Yes (OCR) | Partial | No | Yes | No | No | No |
@@ -56,7 +56,7 @@ No other single tool does what Redactor does: **multi-format document redaction 
 | | No CLI — library only, requires Python code |
 | | Span-to-document-coordinate mapping is your problem |
 
-**How Redactor relates:** Redactor uses Presidio as its detection engine (Phase 3 `--auto` mode). It adds everything Presidio doesn't have: document parsing, format-preserving redaction output, metadata scrubbing, CLI, and multi-format routing.
+**How Scrubfile relates:** Scrubfile uses Presidio as its detection engine (Phase 3 `--auto` mode). It adds everything Presidio doesn't have: document parsing, format-preserving redaction output, metadata scrubbing, CLI, and multi-format routing.
 
 ### scrubadub
 
@@ -79,7 +79,7 @@ No other single tool does what Redactor does: **multi-format document redaction 
 
 **License:** MIT (free)
 
-Detects PERSON, ORG, GPE, DATE, MONEY — but **not** SSN, email, phone, credit card, or other structured PII. Requires building an entire detection + regex + redaction pipeline around it. Redactor uses spaCy indirectly through Presidio.
+Detects PERSON, ORG, GPE, DATE, MONEY — but **not** SSN, email, phone, credit card, or other structured PII. Requires building an entire detection + regex + redaction pipeline around it. Scrubfile uses spaCy indirectly through Presidio.
 
 ---
 
@@ -193,7 +193,7 @@ Manual redaction only. No auto-detection, no pattern search. PDF-only. Produces 
 - **GUI applications** (Adobe, Foxit) that are not scriptable
 - **Numerous GitHub proof-of-concepts** that combine Presidio + PyMuPDF but are abandoned after initial commits and lack tests, CLI, or multi-format support
 
-Redactor fills this gap.
+Scrubfile fills this gap.
 
 ---
 
@@ -201,7 +201,7 @@ Redactor fills this gap.
 
 | Tool | Annual Cost | Notes |
 |------|:----------:|-------|
-| **Redactor** | **$0** | Free, open-source (AGPL-3.0 due to PyMuPDF dependency) |
+| **Scrubfile** | **$0** | Free, open-source (AGPL-3.0 due to PyMuPDF dependency) |
 | Microsoft Presidio | $0 | Free library, but no document redaction |
 | scrubadub | $0 | Free library, text-only |
 | Google Cloud DLP | ~$3/GB | Inspection + de-identification combined |
@@ -213,7 +213,7 @@ Redactor fills this gap.
 
 ---
 
-## What Redactor Uniquely Provides
+## What Scrubfile Uniquely Provides
 
 ### 1. Multi-format pipeline in one tool
 
@@ -221,17 +221,17 @@ No other tool takes PDF, PNG, JPEG, TIFF, BMP, and DOCX as input and produces re
 
 ```bash
 # One tool, any format
-redactor report.pdf --auto
-redactor photo.png -r "John Doe"
-redactor contract.docx -f terms.txt
+scrubfile report.pdf --auto
+scrubfile photo.png -r "John Doe"
+scrubfile contract.docx -f terms.txt
 ```
 
 ### 2. Detection + redaction in one command
 
-Cloud APIs detect PII and return annotations. Desktop apps require manual search. Redactor's `--auto` flag runs ML detection and applies redaction in a single command.
+Cloud APIs detect PII and return annotations. Desktop apps require manual search. Scrubfile's `--auto` flag runs ML detection and applies redaction in a single command.
 
 ```bash
-redactor document.pdf --auto --threshold 0.5
+scrubfile document.pdf --auto --threshold 0.5
 ```
 
 ### 3. Designed for LLM and automation use
@@ -240,36 +240,36 @@ No existing tool provides all of: structured JSON output, predictable exit codes
 
 ```bash
 # JSON for scripts/LLMs
-redactor file.pdf --auto --json
+scrubfile file.pdf --auto --json
 
 # Python API
-from redactor import redact
+from scrubfile import redact
 result = redact("file.pdf", auto=True)
 ```
 
 ### 4. Privacy-preserving output
 
-Redactor masks PII terms in its own output (`[TERM-1]`, `[TERM-2]`). Other tools either echo detected PII in logs/responses or don't consider this concern. Output files are set to owner-only permissions (0o600).
+Scrubfile masks PII terms in its own output (`[TERM-1]`, `[TERM-2]`). Other tools either echo detected PII in logs/responses or don't consider this concern. Output files are set to owner-only permissions (0o600).
 
 ### 5. Smart term expansion
 
-When you provide an SSN or phone number in any format, Redactor automatically searches for all common variants. No other tool does this.
+When you provide an SSN or phone number in any format, Scrubfile automatically searches for all common variants. No other tool does this.
 
 ```bash
 # Provide one format, all 6 are searched
-redactor file.pdf -r "555-123-4567"
+scrubfile file.pdf -r "555-123-4567"
 # Also finds: 5551234567, 555.123.4567, 555 123 4567, (555) 123-4567, (555)123-4567
 ```
 
 ### 6. True redaction with metadata scrubbing
 
-Like Adobe Acrobat, Redactor performs true PDF redaction (content stream removal, not visual overlay) and scrubs metadata (author, creator, timestamps, XMP). Unlike Adobe, it also handles images and DOCX.
+Like Adobe Acrobat, Scrubfile performs true PDF redaction (content stream removal, not visual overlay) and scrubs metadata (author, creator, timestamps, XMP). Unlike Adobe, it also handles images and DOCX.
 
 ---
 
 ## Honest Limitations
 
-Redactor is not the best choice for every scenario:
+Scrubfile is not the best choice for every scenario:
 
 | Scenario | Better tool |
 |----------|-------------|
@@ -280,13 +280,13 @@ Redactor is not the best choice for every scenario:
 | Multi-language PII detection (non-English) | **Google Cloud DLP** or **Presidio with multilingual models** |
 | Audio/video PII redaction | **Private AI** — supports audio natively |
 
-Redactor is best when you need: **local, scriptable, multi-format, automated PII redaction** — and you don't want to stitch together 5 different tools or send your data to the cloud.
+Scrubfile is best when you need: **local, scriptable, multi-format, automated PII redaction** — and you don't want to stitch together 5 different tools or send your data to the cloud.
 
 ---
 
 ## Summary
 
-| Category | Best-in-class | Redactor's position |
+| Category | Best-in-class | Scrubfile's position |
 |----------|:-------------|:--------------------|
 | PDF redaction quality | Adobe Acrobat Pro | Equivalent (uses PyMuPDF's native redaction) |
 | PII detection breadth | Google Cloud DLP (150+ types) | Good (Presidio + custom recognizers, English-only) |

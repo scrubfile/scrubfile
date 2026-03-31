@@ -1,6 +1,6 @@
 # PLAN.md — Review (review_1)
 
-Thorough review of `PLAN.md` for the PII Redactor implementation plan.
+Thorough review of `PLAN.md` for the PII Scrubfile implementation plan.
 
 ---
 
@@ -25,11 +25,11 @@ Calling out **PyMuPDF’s AGPL-3.0** early is important. The plan correctly flag
 **AGPL wording**  
 The line that AGPL is “no issue” for “local CLI use” is easy to misread. More precise: **private use without distribution** is unconstrained; **shipping** a product that bundles or depends on AGPL PyMuPDF in a derivative work triggers share-alike. Worth one sentence in the plan so future PyPI/GitHub release decisions are unambiguous.
 
-**Optional dependencies vs. “default” OCR**  
-The `pyproject.toml` snippet marks `easyocr` as optional with a “(default)” comment. In practice you need a rule: either **Phase 2+** makes `easyocr` a default dependency of the published package, or **images require** `pip install redactor[easyocr]`. The plan should state which, so install docs and CI don’t drift.
+**Optional dependencies vs. “default” OCR**
+The `pyproject.toml` snippet marks `easyocr` as optional with a “(default)” comment. In practice you need a rule: either **Phase 2+** makes `easyocr` a default dependency of the published package, or **images require** `pip install scrubfile[easyocr]`. The plan should state which, so install docs and CI don’t drift.
 
 **`stdin` and binary PDFs**  
-`cat file.pdf | redactor` is fine if implemented as “read stdin into a temp file or buffer then process,” but it should be called out: many CLIs struggle with TTY vs pipe, large files, and Windows parity. Worth a short “supported or not” note.
+`cat file.pdf | scrubfile` is fine if implemented as “read stdin into a temp file or buffer then process,” but it should be called out: many CLIs struggle with TTY vs pipe, large files, and Windows parity. Worth a short “supported or not” note.
 
 **PyMuPDF APIs**  
 `set_metadata`, `scrub`, and exact redaction behavior vary by version. The plan should say “verify against pinned PyMuPDF version” so `doc.scrub()` / metadata clearing stay accurate in code and tests.
@@ -38,7 +38,7 @@ The `pyproject.toml` snippet marks `easyocr` as optional with a “(default)” 
 The hard part in Phase 3 is not running `AnalyzerEngine.analyze(text)` but **aligning character spans in a single extracted text stream with PyMuPDF’s text model** (reading order, hyphenation, multi-column, headers). `search_for()` works when the span is an **exact** substring of what PyMuPDF would find; NER spans that don’t match the PDF text byte-for-byte need a documented fallback (fuzzy match, per-page text blocks, or user warning). The plan gestures at this; making it an explicit work item would reduce surprise.
 
 **Package name**  
-“Publish as `redactor` on PyPI” assumes the name is free and not confused with existing packages. A one-line “check availability / consider `pii-redactor` style name” note avoids late rename pain.
+“Publish as `scrubfile` on PyPI” assumes the name is free and not confused with existing packages. A one-line “check availability / consider `pii-redactor` style name” note avoids late rename pain.
 
 ---
 

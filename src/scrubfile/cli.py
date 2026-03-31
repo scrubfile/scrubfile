@@ -148,12 +148,17 @@ def redact(
         _error(f"Redaction failed: {e}", json_output)
         raise typer.Exit(code=1)
 
+    # Path privacy: use basenames in output to avoid leaking usernames
+    # from OS-level directory paths (e.g., /Users/<name>/...).
+    input_display = Path(result.input_path).name
+    output_display = Path(result.output_path).name if result.output_path else ""
+
     # Preview mode — show detections without redacting
     if preview and auto:
         if json_output:
             print(json.dumps({
                 "status": "preview",
-                "input": str(result.input_path),
+                "input": input_display,
                 "detections": len(result.terms_found),
                 "entities": [
                     {"type": "AUTO", "text": f"[DETECTED-{i+1}]"}
@@ -177,8 +182,8 @@ def redact(
         if json_output:
             print(json.dumps({
                 "status": "no_redactions",
-                "input": str(result.input_path),
-                "output": str(result.output_path),
+                "input": input_display,
+                "output": output_display,
                 "redactions": 0,
             }))
         else:
@@ -194,8 +199,8 @@ def redact(
     if json_output:
         print(json.dumps({
             "status": "success",
-            "input": str(result.input_path),
-            "output": str(result.output_path),
+            "input": input_display,
+            "output": output_display,
             "redactions": result.total_redactions,
             "pages_affected": result.pages_affected,
             "terms_matched": len(result.terms_found),
@@ -214,7 +219,7 @@ def redact(
             for label, count in masked_terms.items():
                 table.add_row(label, str(count))
             console.print(table)
-        console.print(f"Output: {result.output_path}")
+        console.print(f"Output: {output_display}")
         console.print("[dim]Metadata cleared.[/dim]")
 
 

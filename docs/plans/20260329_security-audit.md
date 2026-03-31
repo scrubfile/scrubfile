@@ -1,7 +1,7 @@
 # Security Audit Results
 
 **Date:** 2026-03-29
-**Codebase:** /Users/aniketananddeshmukh/projects/redactor
+**Codebase:** /Users/aniketananddeshmukh/projects/scrubfile
 **Stack:** Python 3.10+, Typer (CLI), PyMuPDF (PDF), Rich (output formatting)
 
 ## Scorecard
@@ -38,8 +38,8 @@ Plus 2 CLI-specific critical issues below.
 ### CRITICAL-1: PII terms echoed in output
 
 **Files:**
-- `src/redactor/cli.py:122-130` (JSON output includes `terms_found` dict with raw PII)
-- `src/redactor/cli.py:138-139` (Rich table prints each PII term and its count)
+- `src/scrubfile/cli.py:122-130` (JSON output includes `terms_found` dict with raw PII)
+- `src/scrubfile/cli.py:138-139` (Rich table prints each PII term and its count)
 
 **Problem:** The tool's output contains the exact PII strings the user wanted to redact. These appear in:
 - Terminal scrollback
@@ -53,7 +53,7 @@ This directly undermines the tool's privacy mission.
 
 ### CRITICAL-2: Output file permissions are world-readable
 
-**File:** `src/redactor/pdf.py:63`
+**File:** `src/scrubfile/pdf.py:63`
 
 **Problem:** `doc.save()` creates files with default umask (typically 0o644 = rw-r--r--). On shared systems, any local user can read the redacted document.
 
@@ -62,22 +62,22 @@ This directly undermines the tool's privacy mission.
 ## Warnings (PARTIAL)
 
 ### PARTIAL: Terms file accepts symlinks
-**File:** `src/redactor/utils.py:61-76`
+**File:** `src/scrubfile/utils.py:61-76`
 
 `load_terms_from_file()` resolves the path but doesn't check for symlinks (unlike output path handling). A symlink could point to any readable file. Low risk since the user controls their own inputs.
 
 ### PARTIAL: Metadata scrubbing completeness
-**File:** `src/redactor/pdf.py:59-60`
+**File:** `src/scrubfile/pdf.py:59-60`
 
 `set_metadata({})` + `scrub()` clears standard metadata (author, title, creator — verified by tests). May not fully clear: XMP extended properties, embedded files/attachments, form field data. Adequate for Phase 1; document limitations.
 
 ### PARTIAL: No structured logging
-**File:** `src/redactor/cli.py:104-106`
+**File:** `src/scrubfile/cli.py:104-106`
 
 Broad `except Exception as e` converts to string and discards traceback. No Python `logging` module usage. Acceptable for Phase 1 CLI but should be improved before production use.
 
 ### PARTIAL: Unused `Any` import
-**File:** `src/redactor/__init__.py:6`
+**File:** `src/scrubfile/__init__.py:6`
 
 `from typing import Any` imported but never used. Cosmetic issue only.
 

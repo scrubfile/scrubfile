@@ -1,4 +1,4 @@
-# PII Redactor — Implementation Plan
+# PII Scrubfile — Implementation Plan
 
 ## Context
 
@@ -57,24 +57,24 @@ The tool should be trivially usable by code LLMs (Claude Code, Cursor, Copilot, 
 ### 1. CLI with JSON Output (for subprocess calls)
 ```bash
 # Human-readable (default)
-redactor file.pdf --redact "John Doe"
+scrubfile file.pdf --redact "John Doe"
 
 # Machine-readable JSON output (for LLM parsing)
-redactor file.pdf --redact "John Doe" --json
+scrubfile file.pdf --redact "John Doe" --json
 # → {"status": "success", "input": "file.pdf", "output": "file_redacted.pdf", "redactions": 3}
 
 # Preview in JSON (LLMs can inspect before committing)
-redactor file.pdf --auto --preview --json
+scrubfile file.pdf --auto --preview --json
 # → {"detections": [{"type": "PERSON", "text": "John Doe", "score": 0.95, "page": 1}, ...]}
 ```
 
 - Predictable exit codes: 0 = success, 1 = error, 2 = no redactions found
 - Comprehensive `--help` text (LLMs read this to learn usage)
-- Stdin support: `cat file.pdf | redactor --redact "term"` for piping
+- Stdin support: `cat file.pdf | scrubfile --redact "term"` for piping
 
 ### 2. Python API (for LLMs writing scripts)
 ```python
-from redactor import redact
+from scrubfile import redact
 
 # One-liner — LLMs love simple APIs
 result = redact("input.pdf", terms=["John Doe", "123-45-6789"])
@@ -104,9 +104,9 @@ def preview_redactions(file_path: str, auto: bool = True) -> list[dict]: ...
 This is the killer feature for LLM adoption — an LLM can directly call `redact_file` as a tool without writing any code. We'll add this after the core is stable.
 
 ### Package Discoverability
-- **Package name:** Check PyPI availability before committing. `redactor` may be taken — fallback candidates: `pii-redactor`, `docredact`, `redact-pii`
+- **Package name:** Check PyPI availability before committing. `scrubfile` may be taken — fallback candidates: `pii-redactor`, `docredact`, `redact-pii`
 - `pip install <name>` makes both the CLI and Python API available
-- `pyproject.toml` `[project.scripts]` entry: `redactor = "redactor.cli:app"`
+- `pyproject.toml` `[project.scripts]` entry: `scrubfile = "scrubfile.cli:app"`
 - Clear package description and keywords for PyPI search
 
 ---
@@ -141,7 +141,7 @@ EasyOCR is the better default because: no system dependency (easier install for 
 The OCR engine is abstracted behind a simple protocol so users can swap engines:
 
 ```python
-# src/redactor/ocr.py
+# src/scrubfile/ocr.py
 
 class OCRResult:
     text: str
@@ -161,18 +161,18 @@ class PaddleOCRProvider:   # Best accuracy, heavier install
     ...
 ```
 
-Usage via CLI: `redactor image.png --redact "John" --ocr-engine tesseract`
+Usage via CLI: `scrubfile image.png --redact "John" --ocr-engine tesseract`
 Usage via API: `redact("image.png", terms=[...], ocr_engine="paddleocr")`
 Default: `easyocr`. Only the selected provider's dependency needs to be installed.
 
-**Packaging rule:** EasyOCR is a **required dependency** when installing Phase 2+ (i.e., `pip install redactor` includes EasyOCR out of the box). Alternative OCR engines are optional extras:
+**Packaging rule:** EasyOCR is a **required dependency** when installing Phase 2+ (i.e., `pip install scrubfile` includes EasyOCR out of the box). Alternative OCR engines are optional extras:
 ```toml
 [project.dependencies]
 easyocr = ">=1.7"              # default OCR — included automatically
 
 [project.optional-dependencies]
-tesseract = ["pytesseract"]     # pip install redactor[tesseract]
-paddleocr = ["paddlepaddle", "paddleocr"]  # pip install redactor[paddleocr]
+tesseract = ["pytesseract"]     # pip install scrubfile[tesseract]
+paddleocr = ["paddlepaddle", "paddleocr"]  # pip install scrubfile[paddleocr]
 ```
 Phase 1 (PDF-only) does not require any OCR engine. The `easyocr` dependency is added when Phase 2 lands.
 
@@ -199,10 +199,10 @@ CLI Input                    Core Engine                    Output
 ### Files to Create
 
 ```
-redactor/
+scrubfile/
 ├── pyproject.toml              # Project config, dependencies, [project.scripts] entry
 ├── src/
-│   └── redactor/
+│   └── scrubfile/
 │       ├── __init__.py         # Public API: exports redact() function
 │       ├── cli.py              # Typer CLI entrypoint (--json flag for machine output)
 │       ├── pdf.py              # PDF redaction using PyMuPDF
@@ -239,13 +239,13 @@ Concretely:
 
 ```bash
 # Basic usage
-redactor file.pdf --redact "John Doe" --redact "123-45-6789"
+scrubfile file.pdf --redact "John Doe" --redact "123-45-6789"
 
 # With output path
-redactor file.pdf --redact "Jane Smith" -o redacted_output.pdf
+scrubfile file.pdf --redact "Jane Smith" -o redacted_output.pdf
 
 # From a file containing PII terms (one per line)
-redactor file.pdf --redact-file pii_terms.txt
+scrubfile file.pdf --redact-file pii_terms.txt
 ```
 
 ### Risks & Mitigations
@@ -288,7 +288,7 @@ DOCX file
 ### New/Modified Files
 
 ```
-src/redactor/
+src/scrubfile/
 ├── ocr.py              # OCRProvider protocol + EasyOCR/Tesseract/PaddleOCR adapters
 ├── image.py            # Image redaction (uses OCRProvider for text detection, Pillow for drawing)
 ├── docx.py             # DOCX text search + redaction (python-docx)
@@ -340,25 +340,25 @@ Document
 
 ```bash
 # Auto-detect all PII
-redactor file.pdf --auto
+scrubfile file.pdf --auto
 
 # Auto-detect specific types only
-redactor file.pdf --auto --types PERSON,SSN,EMAIL
+scrubfile file.pdf --auto --types PERSON,SSN,EMAIL
 
 # Preview mode — show what would be redacted without modifying
-redactor file.pdf --auto --preview
+scrubfile file.pdf --auto --preview
 
 # Set confidence threshold (default 0.7)
-redactor file.pdf --auto --threshold 0.5
+scrubfile file.pdf --auto --threshold 0.5
 
 # Combine: auto-detect + explicit terms
-redactor file.pdf --auto --redact "custom secret term"
+scrubfile file.pdf --auto --redact "custom secret term"
 ```
 
 ### New/Modified Files
 
 ```
-src/redactor/
+src/scrubfile/
 ├── detector.py         # PII detection engine wrapping Presidio
 ├── recognizers.py      # Custom Presidio recognizers (SSN, address, etc.)
 └── cli.py              # Updated: --auto, --types, --preview, --threshold flags
@@ -405,7 +405,7 @@ These are lightweight checks, not a security boundary. The tool is designed for 
 pip install -e .
 
 # Create a test PDF with known PII, then:
-redactor test.pdf --redact "John Doe" --redact "123-45-6789"
+scrubfile test.pdf --redact "John Doe" --redact "123-45-6789"
 
 # Verify:
 # 1. Output PDF exists and opens correctly
@@ -425,26 +425,26 @@ Create purpose-built test files with **known PII at known positions** for automa
 ### Phase 2 Testing
 ```bash
 # Image: create a test image with text containing PII
-redactor test_image.png --redact "Jane Smith"
+scrubfile test_image.png --redact "Jane Smith"
 # Verify: PII region is blacked out, EXIF data stripped
 
 # DOCX: create a test document with PII
-redactor test.docx --redact "555-12-3456"
+scrubfile test.docx --redact "555-12-3456"
 # Verify: PII replaced with block characters, document properties cleared
 ```
 
 ### Phase 3 Testing
 ```bash
 # Auto-detect on PDF
-redactor test.pdf --auto --preview
+scrubfile test.pdf --auto --preview
 # Verify: preview shows detected entities with types and confidence scores
 
-redactor test.pdf --auto
+scrubfile test.pdf --auto
 # Verify: all detected PII is redacted in output
 
 # Test with different thresholds
-redactor test.pdf --auto --threshold 0.3  # more aggressive
-redactor test.pdf --auto --threshold 0.9  # more conservative
+scrubfile test.pdf --auto --threshold 0.3  # more aggressive
+scrubfile test.pdf --auto --threshold 0.9  # more conservative
 ```
 
 ---

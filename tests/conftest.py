@@ -11,6 +11,10 @@ import pytest
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 
+def pytest_configure(config):
+    config.addinivalue_line("markers", "slow: requires ML model downloads (spaCy, EasyOCR)")
+
+
 def create_golden_pdf(path: Path) -> Path:
     """Create a test PDF with known PII at known positions."""
     doc = fitz.open()

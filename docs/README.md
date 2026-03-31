@@ -1,4 +1,4 @@
-# Redactor
+# Scrubfile
 
 A local-only PII redaction tool for documents. Finds and permanently removes sensitive information from PDFs, with image and DOCX support planned.
 
@@ -13,13 +13,13 @@ A local-only PII redaction tool for documents. Finds and permanently removes sen
 pip install -e .
 
 # Redact terms from a PDF
-redactor report.pdf --redact "John Doe" --redact "123-45-6789"
+scrubfile report.pdf --redact "John Doe" --redact "123-45-6789"
 
 # Use a terms file (one term per line)
-redactor report.pdf --redact-file terms.txt
+scrubfile report.pdf --redact-file terms.txt
 
 # Machine-readable output
-redactor report.pdf --redact "Jane Smith" --json
+scrubfile report.pdf --redact "Jane Smith" --json
 ```
 
 ## Installation
@@ -27,14 +27,14 @@ redactor report.pdf --redact "Jane Smith" --json
 **Requirements:** Python 3.10+
 
 ```bash
-git clone https://github.com/aniketde/redactor.git
-cd redactor
+git clone https://github.com/scrubfile/scrubfile.git
+cd scrubfile
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 ```
 
-This installs the `redactor` CLI command and the `redactor` Python package.
+This installs the `scrubfile` CLI command and the `scrubfile` Python package.
 
 ---
 
@@ -43,7 +43,7 @@ This installs the `redactor` CLI command and the `redactor` Python package.
 ### CLI
 
 ```bash
-redactor <file> [OPTIONS]
+scrubfile <file> [OPTIONS]
 ```
 
 | Flag | Short | Type | Description |
@@ -65,25 +65,25 @@ redactor <file> [OPTIONS]
 
 ```bash
 # Redact multiple terms
-redactor employee_record.pdf -r "John Doe" -r "123-45-6789" -r "john@example.com"
+scrubfile employee_record.pdf -r "John Doe" -r "123-45-6789" -r "john@example.com"
 
 # Use a terms file
-redactor employee_record.pdf -f pii_terms.txt
+scrubfile employee_record.pdf -f pii_terms.txt
 
 # Combine both
-redactor employee_record.pdf -f pii_terms.txt -r "extra term"
+scrubfile employee_record.pdf -f pii_terms.txt -r "extra term"
 
 # Custom output path
-redactor employee_record.pdf -r "John Doe" -o cleaned.pdf
+scrubfile employee_record.pdf -r "John Doe" -o cleaned.pdf
 
 # JSON output for scripting
-redactor employee_record.pdf -r "John Doe" --json
+scrubfile employee_record.pdf -r "John Doe" --json
 ```
 
 ### Python API
 
 ```python
-from redactor import redact
+from scrubfile import redact
 
 # Basic usage
 result = redact("report.pdf", terms=["John Doe", "123-45-6789"])
@@ -317,7 +317,7 @@ The tool is designed for **trusted local use** -- processing your own files on y
 ## Architecture
 
 ```
-src/redactor/
+src/scrubfile/
 ├── __init__.py         # Public API: redact() function
 ├── cli.py              # Typer CLI: argument parsing, output formatting
 ├── pdf.py              # PDF engine: search, annotate, apply, scrub, save
@@ -378,7 +378,7 @@ User Input (CLI or API)
 pytest tests/ -v
 
 # Run with coverage
-pytest tests/ --cov=redactor --cov-report=term-missing
+pytest tests/ --cov=scrubfile --cov-report=term-missing
 ```
 
 **Test coverage:**

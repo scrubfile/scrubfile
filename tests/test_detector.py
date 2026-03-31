@@ -7,6 +7,7 @@ import pytest
 from scrubfile.detector import PIIDetection, detect_pii, SUPPORTED_ENTITY_TYPES
 
 
+@pytest.mark.slow
 class TestDetectPii:
     def test_detects_person_name(self):
         text = "The employee John Smith works in accounting."
@@ -93,6 +94,7 @@ class TestDetectPii:
         assert len(entity_types) >= 2
 
 
+@pytest.mark.slow
 class TestSupportedEntityTypes:
     def test_common_types_listed(self):
         assert "PERSON" in SUPPORTED_ENTITY_TYPES

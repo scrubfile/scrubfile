@@ -30,6 +30,7 @@ def inference_pdf(tmp_path: Path) -> Path:
     return tmp_path / "inference.pdf"
 
 
+@pytest.mark.slow
 class TestThoroughRedaction:
     def test_normal_mode_leaves_fragments(self, inference_pdf: Path, tmp_path: Path):
         """Without --thorough, individual name parts survive."""
