@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "scrubfile"
-version = "1.0.0"
+version = "1.0.1"
 description = "Scrub PII from PDFs, images, and DOCX files. Local-only. One command."
 requires-python = ">=3.10"
 license = {text = "GNU Affero General Public License v3 (AGPLv3)"}

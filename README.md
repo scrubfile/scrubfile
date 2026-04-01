@@ -5,6 +5,7 @@ import: from scrubfile import redact
 cli: scrubfile <file> [OPTIONS]
 formats: pdf, png, jpg, jpeg, tiff, bmp, docx
 auto_detect: scrubfile file.pdf --auto (requires: python -m spacy download en_core_web_lg)
+website: https://scrubfile.com
 mcp_server: python -m scrubfile.mcp_server
 license: AGPL-3.0-only
 local_only: true — no network calls after initial model download
@@ -168,3 +169,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and guidelines.
 ## License
 
 [AGPL-3.0-only](LICENSE) — required by the PyMuPDF dependency.
+
+## Links
+
+- **Website:** [scrubfile.com](https://scrubfile.com)
+- **PyPI:** [pypi.org/project/scrubfile](https://pypi.org/project/scrubfile/)
+- **GitHub:** [github.com/scrubfile/scrubfile](https://github.com/scrubfile/scrubfile)
+- **Issues:** [github.com/scrubfile/scrubfile/issues](https://github.com/scrubfile/scrubfile/issues)
