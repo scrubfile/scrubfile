@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>scrubfile — Scrub PII from documents. Local-only. One command.</title>
+    <meta name="description" content="Open-source CLI tool to scrub PII from PDFs, images, and DOCX files. Runs 100% locally. Auto-detects names, SSNs, emails, phones, and 20+ PII types.">
+    <meta property="og:title" content="scrubfile — Scrub PII from documents">
+    <meta property="og:description" content="Local-only PII redaction for PDFs, images, and DOCX files. One command.">
+    <meta property="og:url" content="https://scrubfile.com">
+    <meta property="og:type" content="website">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            color: #1a1a2e;
+            background: #fafafa;
+            line-height: 1.6;
+        }
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+        /* Hero */
+        .hero {
+            padding: 80px 0 60px;
+            text-align: center;
+        }
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            margin-bottom: 16px;
+        }
+        .hero h1 span { color: #6366f1; }
+        .hero .subtitle {
+            font-size: 1.25rem;
+            color: #555;
+            max-width: 540px;
+            margin: 0 auto 40px;
+        }
+
+        /* Install box */
+        .install {
+            background: #1a1a2e;
+            color: #e0e0e0;
+            border-radius: 12px;
+            padding: 20px 28px;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 1rem;
+            max-width: 480px;
+            margin: 0 auto 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .install code { color: #a5b4fc; }
+        .install .dollar { color: #6366f1; margin-right: 8px; }
+        .install button {
+            background: none;
+            border: 1px solid #444;
+            color: #aaa;
+            padding: 4px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .install button:hover { border-color: #6366f1; color: #fff; }
+
+        /* Buttons */
+        .buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin: 32px 0;
+            flex-wrap: wrap;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #1a1a2e;
+            color: #fff;
+        }
+        .btn-primary:hover { background: #2d2d4a; }
+        .btn-secondary {
+            background: #fff;
+            color: #1a1a2e;
+            border: 2px solid #e0e0e0;
+        }
+        .btn-secondary:hover { border-color: #6366f1; }
+
+        /* Features grid */
+        .features {
+            padding: 60px 0;
+        }
+        .features h2 {
+            text-align: center;
+            font-size: 1.75rem;
+            margin-bottom: 40px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 24px;
+        }
+        .card {
+            background: #fff;
+            border: 1px solid #e8e8e8;
+            border-radius: 12px;
+            padding: 24px;
+        }
+        .card h3 {
+            font-size: 1.05rem;
+            margin-bottom: 8px;
+        }
+        .card p {
+            color: #666;
+            font-size: 0.95rem;
+        }
+        .card .icon {
+            font-size: 1.5rem;
+            margin-bottom: 12px;
+        }
+
+        /* Code example */
+        .example {
+            padding: 60px 0;
+            text-align: center;
+        }
+        .example h2 {
+            font-size: 1.75rem;
+            margin-bottom: 32px;
+        }
+        .code-block {
+            background: #1a1a2e;
+            color: #e0e0e0;
+            border-radius: 12px;
+            padding: 28px 32px;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.95rem;
+            text-align: left;
+            overflow-x: auto;
+            line-height: 1.8;
+        }
+        .code-block .comment { color: #6b7280; }
+        .code-block .string { color: #a5b4fc; }
+        .code-block .keyword { color: #c084fc; }
+
+        /* Comparison */
+        .comparison {
+            padding: 60px 0;
+        }
+        .comparison h2 {
+            text-align: center;
+            font-size: 1.75rem;
+            margin-bottom: 32px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e8e8e8;
+        }
+        th, td {
+            padding: 14px 18px;
+            text-align: center;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.95rem;
+        }
+        th {
+            background: #f8f8fc;
+            font-weight: 700;
+            color: #1a1a2e;
+        }
+        td:first-child, th:first-child { text-align: left; }
+        .check { color: #22c55e; font-weight: bold; }
+        .cross { color: #ccc; }
+
+        /* Footer */
+        footer {
+            padding: 40px 0;
+            text-align: center;
+            color: #999;
+            font-size: 0.9rem;
+            border-top: 1px solid #eee;
+        }
+        footer a { color: #6366f1; text-decoration: none; }
+
+        @media (max-width: 600px) {
+            .hero h1 { font-size: 2rem; }
+            .hero .subtitle { font-size: 1.05rem; }
+            .install { font-size: 0.85rem; padding: 16px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<section class="hero">
+    <div class="container">
+        <h1><span>scrubfile</span></h1>
+        <p class="subtitle">Scrub PII from PDFs, images, and DOCX files. Local-only. One command.</p>
+
+        <div class="install">
+            <div><span class="dollar">$</span><code>pip install scrubfile</code></div>
+            <button onclick="navigator.clipboard.writeText('pip install scrubfile')">Copy</button>
+        </div>
+
+        <div class="buttons">
+            <a href="https://github.com/scrubfile/scrubfile" class="btn btn-primary">
+                GitHub
+            </a>
+            <a href="https://pypi.org/project/scrubfile/" class="btn btn-secondary">
+                PyPI
+            </a>
+            <a href="https://github.com/scrubfile/scrubfile#readme" class="btn btn-secondary">
+                Docs
+            </a>
+        </div>
+    </div>
+</section>
+
+<section class="features">
+    <div class="container">
+        <h2>Why scrubfile?</h2>
+        <div class="grid">
+            <div class="card">
+                <div class="icon">&#x1f512;</div>
+                <h3>100% Local</h3>
+                <p>No cloud APIs. No data leaves your machine. Zero network calls after model download.</p>
+            </div>
+            <div class="card">
+                <div class="icon">&#x1f4c4;</div>
+                <h3>Multi-Format</h3>
+                <p>PDF, PNG, JPG, TIFF, BMP, DOCX. One tool handles them all.</p>
+            </div>
+            <div class="card">
+                <div class="icon">&#x1f9e0;</div>
+                <h3>Auto-Detect PII</h3>
+                <p>Names, SSNs, emails, phones, addresses, credit cards, and 20+ entity types via Presidio + spaCy.</p>
+            </div>
+            <div class="card">
+                <div class="icon">&#x2699;&#xfe0f;</div>
+                <h3>Permanent Redaction</h3>
+                <p>Text removed from PDF content stream. Not a visual overlay — the data is gone.</p>
+            </div>
+            <div class="card">
+                <div class="icon">&#x1f916;</div>
+                <h3>MCP Server</h3>
+                <p>AI agents (Claude, Cursor) can redact documents directly via Model Context Protocol.</p>
+            </div>
+            <div class="card">
+                <div class="icon">&#x1f4e6;</div>
+                <h3>JSON + CLI + API</h3>
+                <p>Machine-readable output. Python API. CLI with rich output. Built for automation.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="example">
+    <div class="container">
+        <h2>Simple by design</h2>
+        <div class="code-block">
+            <span class="comment"># Redact specific terms</span><br>
+            $ scrubfile document.pdf -r <span class="string">"John Doe"</span> -r <span class="string">"123-45-6789"</span><br><br>
+            <span class="comment"># Auto-detect all PII</span><br>
+            $ scrubfile document.pdf --auto<br><br>
+            <span class="comment"># Python API</span><br>
+            <span class="keyword">from</span> scrubfile <span class="keyword">import</span> redact<br>
+            result = redact(<span class="string">"document.pdf"</span>, auto=<span class="keyword">True</span>)
+        </div>
+    </div>
+</section>
+
+<section class="comparison">
+    <div class="container">
+        <h2>How it compares</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>scrubfile</th>
+                    <th>Adobe Acrobat</th>
+                    <th>Google DLP</th>
+                    <th>Presidio</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Local-only</td>
+                    <td class="check">Yes</td>
+                    <td class="check">Yes</td>
+                    <td class="cross">No</td>
+                    <td class="check">Yes</td>
+                </tr>
+                <tr>
+                    <td>Multi-format</td>
+                    <td class="check">PDF, images, DOCX</td>
+                    <td class="cross">PDF only</td>
+                    <td class="cross">Text/images</td>
+                    <td class="cross">Text only</td>
+                </tr>
+                <tr>
+                    <td>CLI</td>
+                    <td class="check">Yes</td>
+                    <td class="cross">No</td>
+                    <td class="cross">No</td>
+                    <td class="cross">No</td>
+                </tr>
+                <tr>
+                    <td>Auto-detect PII</td>
+                    <td class="check">Yes</td>
+                    <td class="cross">No</td>
+                    <td class="check">Yes</td>
+                    <td class="check">Yes</td>
+                </tr>
+                <tr>
+                    <td>Agent-ready (MCP)</td>
+                    <td class="check">Yes</td>
+                    <td class="cross">No</td>
+                    <td class="cross">No</td>
+                    <td class="cross">No</td>
+                </tr>
+                <tr>
+                    <td>Free</td>
+                    <td class="check">Yes</td>
+                    <td class="cross">$240/yr</td>
+                    <td class="cross">Pay per call</td>
+                    <td class="check">Yes</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<footer>
+    <div class="container">
+        <p>
+            <a href="https://github.com/scrubfile/scrubfile">GitHub</a> &middot;
+            <a href="https://pypi.org/project/scrubfile/">PyPI</a> &middot;
+            <a href="https://github.com/scrubfile/scrubfile#readme">Docs</a> &middot;
+            AGPL-3.0
+        </p>
+    </div>
+</footer>
+
+</body>
+</html>
