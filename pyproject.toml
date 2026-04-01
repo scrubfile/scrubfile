@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling<1.19"]
 build-backend = "hatchling.build"
 
 [project]
@@ -7,7 +7,7 @@ name = "scrubfile"
 version = "1.0.0"
 description = "Scrub PII from PDFs, images, and DOCX files. Local-only. One command."
 requires-python = ">=3.10"
-license = "AGPL-3.0-only"
+license = {text = "GNU Affero General Public License v3 (AGPLv3)"}
 readme = "README.md"
 authors = [
     { name = "Aniket Deshmukh" },
