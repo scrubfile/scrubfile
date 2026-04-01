@@ -23,24 +23,24 @@ def make_employee_record_pdf():
 
     w("CONFIDENTIAL - EMPLOYEE RECORD", 18, bold=True)
     y += 10
-    w("Full Name: Arjun Vikram Sharma")
-    w("Date of Birth: March 15, 1992")
+    w("Full Name: James Robert Mitchell")
+    w("Date of Birth: March 15, 1988")
     w("Social Security Number: 287-65-4321")
     w("Phone: (555) 867-5309")
-    w("Email: arjun.sharma@globalcorp.com")
+    w("Email: james.mitchell@globalcorp.com")
     w("Home Address: 4521 Maple Avenue, Sunnyvale, CA 94086")
     y += 10
-    w("Emergency Contact: Priya Sharma, 555-234-8901")
+    w("Emergency Contact: Laura Mitchell, 555-234-8901")
     w("Relationship: Spouse")
     y += 10
     w("Bank Account (Direct Deposit): Chase, Routing 021000021, Acct 9876543210")
     w("Annual Salary: $142,500")
     y += 10
-    w("Notes: Arjun joined the ML Platform team on 2023-01-15.")
+    w("Notes: James joined the ML Platform team on 2023-01-15.")
     w("Manager: Sarah Chen (sarah.chen@globalcorp.com)")
     w("Previous employer: Meridian Technologies Inc.")
 
-    doc.set_metadata({"author": "HR System v3.2", "title": "Employee Record - Sharma"})
+    doc.set_metadata({"author": "HR System v3.2", "title": "Employee Record - Mitchell"})
     doc.save(str(OUT / "sample_employee_record.pdf"))
     doc.close()
     print("Created sample_employee_record.pdf")
