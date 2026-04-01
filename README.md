@@ -35,6 +35,8 @@ python -m spacy download en_core_web_lg
 
 ## Quick Start
 
+![Before and after redaction](assets/before-after.png)
+
 ```bash
 # Redact specific terms
 scrubfile document.pdf -r "John Doe" -r "123-45-6789"
