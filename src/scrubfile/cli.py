@@ -128,19 +128,34 @@ def redact(
     # Parse entity types if provided
     types_list = [t.strip() for t in entity_types.split(",")] if entity_types else None
 
-    # Perform redaction via the public API
+    # Perform redaction with progress feedback
     try:
-        result = redact_api(
-            file,
-            terms=all_terms if all_terms else None,
-            output=output,
-            ocr_engine=ocr_engine,
-            auto=auto,
-            threshold=threshold,
-            entity_types=types_list,
-            preview=preview,
-            thorough=thorough,
-        )
+        if json_output:
+            result = redact_api(
+                file,
+                terms=all_terms if all_terms else None,
+                output=output,
+                ocr_engine=ocr_engine,
+                auto=auto,
+                threshold=threshold,
+                entity_types=types_list,
+                preview=preview,
+                thorough=thorough,
+            )
+        else:
+            file_size_mb = file.stat().st_size / (1024 * 1024) if file.exists() else 0
+            console.print(f"[dim]Processing {Path(file).name} ({file_size_mb:.1f}MB)[/dim]")
+            result = _redact_with_progress(
+                file=file,
+                terms=all_terms if all_terms else None,
+                output=output,
+                ocr_engine=ocr_engine,
+                auto=auto,
+                threshold=threshold,
+                entity_types=types_list,
+                preview=preview,
+                thorough=thorough,
+            )
     except (FileNotFoundError, ValueError) as e:
         _error(str(e), json_output)
         raise typer.Exit(code=1)
@@ -221,6 +236,77 @@ def redact(
             console.print(table)
         console.print(f"Output: {output_display}")
         console.print("[dim]Metadata cleared.[/dim]")
+
+
+def _redact_with_progress(
+    file: Path,
+    terms: list[str] | None,
+    output: Path | None,
+    ocr_engine: str,
+    auto: bool,
+    threshold: float,
+    entity_types: list[str] | None,
+    preview: bool,
+    thorough: bool,
+) -> "RedactionResult":
+    """Run redaction with step-by-step status updates."""
+    from scrubfile import (
+        RedactionResult,
+        _IMAGE_EXTENSIONS,
+        _auto_detect_terms,
+        _extract_text,
+        redact as redact_api,
+    )
+    from scrubfile.utils import (
+        expand_term_variants,
+        expand_thorough_variants,
+        validate_input_file,
+        resolve_output_path,
+    )
+
+    input_path = validate_input_file(file)
+    suffix = input_path.suffix.lower()
+    is_image = suffix in _IMAGE_EXTENSIONS
+
+    # Step 1: Auto-detect if needed
+    if auto:
+        if is_image:
+            with console.status("[bold blue]Running OCR and extracting text...", spinner="dots"):
+                text = _extract_text(input_path, suffix, ocr_engine)
+        else:
+            with console.status("[bold blue]Extracting text...", spinner="dots"):
+                text = _extract_text(input_path, suffix, ocr_engine)
+
+        with console.status("[bold blue]Loading NLP models and detecting PII...", spinner="dots"):
+            from scrubfile.detector import detect_pii
+            detections = detect_pii(
+                text=text,
+                threshold=threshold,
+                entity_types=entity_types,
+            )
+        console.print(f"[dim]  Found {len(detections)} PII entities[/dim]")
+
+    # Step 2: Redact
+    with console.status("[bold blue]Redacting and scrubbing metadata...", spinner="dots"):
+        result = redact_api(
+            file,
+            terms=terms,
+            output=output,
+            ocr_engine=ocr_engine,
+            auto=auto,
+            threshold=threshold,
+            entity_types=entity_types,
+            preview=preview,
+            thorough=thorough,
+        )
+
+    return result
+
+
+class _nullcontext:
+    """No-op context manager for JSON mode (no spinner)."""
+    def __enter__(self): return self
+    def __exit__(self, *args): pass
 
 
 def _error(message: str, json_output: bool) -> None:
