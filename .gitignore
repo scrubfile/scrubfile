@@ -15,3 +15,5 @@ venv/
 actual_testing/
 monetization/
 launch_content/
+PII-auto-model/
+form_downloaders/
