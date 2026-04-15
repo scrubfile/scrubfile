@@ -43,7 +43,22 @@ scrubfile document.pdf -r "John Doe" -r "123-45-6789"
 
 # Redact terms from a file (one per line)
 scrubfile document.pdf -f redact.txt -o redacted_output.pdf
+```
 
+**Example `redact.txt`:**
+
+```text
+John Doe
+123-45-6789
+john@example.com
+12/12/1990
+4111-1111-1111-1111
+123 Main Street, Springfield, IL
+```
+
+Each term is automatically expanded to common format variants — e.g. `123-45-6789` also matches `123456789` and `123 45 6789`, and `12/12/1990` also matches `December 12, 1990`, `1990-12-12`, etc.
+
+```bash
 # Auto-detect all PII (names, SSNs, emails, phones, addresses, ...)
 scrubfile document.pdf --auto
 
