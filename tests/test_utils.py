@@ -230,3 +230,211 @@ class TestExpandThoroughVariants:
         result = expand_thorough_variants(["John Doe", "John Smith"])
         # "John" should appear only once
         assert result.count("John") == 1
+
+
+class TestExpandDateVariants:
+    """Tests for date format expansion."""
+
+    def test_date_slash_mdy_expands(self):
+        result = expand_term_variants(["12/12/2023"])
+        assert "12/12/2023" in result
+        assert "12-12-2023" in result
+        assert "12.12.2023" in result
+        assert "2023-12-12" in result
+        assert "December 12, 2023" in result
+        assert "Dec 12, 2023" in result
+        assert "Dec. 12, 2023" in result
+        assert "12 December 2023" in result
+        assert "12 Dec 2023" in result
+        assert "12/12/23" in result
+
+    def test_date_iso_expands(self):
+        result = expand_term_variants(["2023-12-12"])
+        assert "2023-12-12" in result
+        assert "12/12/2023" in result
+        assert "December 12, 2023" in result
+        assert "12 Dec 2023" in result
+
+    def test_date_dotted_expands(self):
+        result = expand_term_variants(["12.12.2023"])
+        assert "12.12.2023" in result
+        assert "12/12/2023" in result
+        assert "2023-12-12" in result
+
+    def test_date_month_name_first_expands(self):
+        result = expand_term_variants(["December 12, 2023"])
+        assert "December 12, 2023" in result
+        assert "12/12/2023" in result
+        assert "2023-12-12" in result
+        assert "Dec 12, 2023" in result
+
+    def test_date_abbr_month_first_expands(self):
+        result = expand_term_variants(["Dec 12, 2023"])
+        assert "Dec 12, 2023" in result
+        assert "12/12/2023" in result
+        assert "December 12, 2023" in result
+
+    def test_date_abbr_dot_month_expands(self):
+        result = expand_term_variants(["Dec. 12, 2023"])
+        assert "Dec. 12, 2023" in result
+        assert "12/12/2023" in result
+        assert "2023-12-12" in result
+
+    def test_date_day_first_expands(self):
+        result = expand_term_variants(["12 December 2023"])
+        assert "12 December 2023" in result
+        assert "12/12/2023" in result
+        assert "2023-12-12" in result
+
+    def test_date_ordinal_day_first_expands(self):
+        result = expand_term_variants(["12th Dec 2023"])
+        assert "12th Dec 2023" in result
+        assert "12/12/2023" in result
+        assert "2023-12-12" in result
+        assert "December 12, 2023" in result
+
+    def test_date_ordinal_variants(self):
+        """1st, 2nd, 3rd ordinals are recognized."""
+        for term in ["1st January 2023", "2nd February 2023", "3rd March 2023"]:
+            result = expand_term_variants([term])
+            assert len(result) > 1, f"No expansion for {term}"
+
+    def test_date_short_year_expands(self):
+        result = expand_term_variants(["12/12/23"])
+        assert "12/12/23" in result
+        assert "12/12/2023" in result
+        assert "2023-12-12" in result
+        assert "December 12, 2023" in result
+
+    def test_date_short_year_dash_expands(self):
+        result = expand_term_variants(["12-12-23"])
+        assert "12-12-23" in result
+        assert "12/12/2023" in result
+        assert "2023-12-12" in result
+
+    def test_date_plain_digits_mmddyyyy(self):
+        result = expand_term_variants(["12122023"])
+        assert "12122023" in result
+        assert "12/12/2023" in result
+        assert "2023-12-12" in result
+
+    def test_date_plain_digits_yyyymmdd(self):
+        result = expand_term_variants(["20230112"])
+        assert "20230112" in result
+        assert "01/12/2023" in result
+        assert "2023-01-12" in result
+
+    def test_date_no_leading_zero_variant(self):
+        result = expand_term_variants(["01/05/2023"])
+        assert "1/5/2023" in result
+        assert "January 5, 2023" in result
+
+    def test_date_same_leading_zero_deduped(self):
+        """When month/day are >=10 the no-leading-zero form is identical."""
+        result = expand_term_variants(["12/12/2023"])
+        assert len(result) == len(set(result))
+
+    def test_invalid_date_not_expanded(self):
+        result = expand_term_variants(["99/99/9999"])
+        assert result == ["99/99/9999"]
+
+    def test_date_no_duplicates(self):
+        result = expand_term_variants(["12/12/2023"])
+        assert len(result) == len(set(result))
+
+    def test_date_mixed_with_ssn(self):
+        result = expand_term_variants(["12/12/2023", "123-45-6789"])
+        assert "December 12, 2023" in result
+        assert "123456789" in result
+
+    def test_bogus_month_name_not_expanded(self):
+        result = expand_term_variants(["Foobar 12, 2023"])
+        assert result == ["Foobar 12, 2023"]
+
+
+class TestExpandCreditCardVariants:
+    """Tests for credit card format expansion."""
+
+    def test_cc_16_plain_expands(self):
+        result = expand_term_variants(["4111111111111111"])
+        assert "4111111111111111" in result
+        assert "4111-1111-1111-1111" in result
+        assert "4111 1111 1111 1111" in result
+
+    def test_cc_16_dashed_expands(self):
+        result = expand_term_variants(["4111-1111-1111-1111"])
+        assert "4111-1111-1111-1111" in result
+        assert "4111111111111111" in result
+        assert "4111 1111 1111 1111" in result
+
+    def test_cc_16_spaced_expands(self):
+        result = expand_term_variants(["4111 1111 1111 1111"])
+        assert "4111 1111 1111 1111" in result
+        assert "4111111111111111" in result
+        assert "4111-1111-1111-1111" in result
+
+    def test_cc_amex_15_plain_expands(self):
+        result = expand_term_variants(["371449635398431"])
+        assert "371449635398431" in result
+        assert "3714-496353-98431" in result
+        assert "3714 496353 98431" in result
+
+    def test_cc_amex_15_dashed_expands(self):
+        result = expand_term_variants(["3714-496353-98431"])
+        assert "3714-496353-98431" in result
+        assert "371449635398431" in result
+        assert "3714 496353 98431" in result
+
+    def test_cc_amex_15_spaced_expands(self):
+        result = expand_term_variants(["3714 496353 98431"])
+        assert "3714 496353 98431" in result
+        assert "371449635398431" in result
+        assert "3714-496353-98431" in result
+
+    def test_cc_13_digit_expands(self):
+        result = expand_term_variants(["4222222222222"])
+        assert "4222222222222" in result
+        assert len(result) > 1
+
+    def test_cc_no_duplicates(self):
+        result = expand_term_variants(["4111-1111-1111-1111", "4111111111111111"])
+        assert len(result) == len(set(result))
+
+    def test_non_cc_12_digits_not_expanded(self):
+        """12 digits is too short for a credit card."""
+        result = expand_term_variants(["123456789012"])
+        # 12 digits — doesn't match CC (min 13) or any other pattern
+        assert result == ["123456789012"]
+
+    def test_cc_not_confused_with_ssn(self):
+        """9-digit SSN should not get CC variants."""
+        result = expand_term_variants(["123456789"])
+        # Should get SSN variants, not CC variants
+        assert "123-45-6789" in result
+        assert "1234-5678-9" not in result
+
+
+class TestExpandEINVariants:
+    """Tests for EIN format expansion."""
+
+    def test_ein_dashed_expands(self):
+        result = expand_term_variants(["12-3456789"])
+        assert "12-3456789" in result
+        assert "123456789" in result
+
+    def test_ein_dashed_no_duplicates(self):
+        result = expand_term_variants(["12-3456789"])
+        assert len(result) == len(set(result))
+
+    def test_ein_plain_gets_ssn_variants_not_ein(self):
+        """Plain 9-digit EINs are handled by SSN expansion (same format)."""
+        result = expand_term_variants(["123456789"])
+        assert "123-45-6789" in result  # SSN grouping
+        # EIN dashed form (2-7) is NOT generated from plain 9 digits
+        # because that would conflict with SSN handling
+        assert "12-3456789" not in result
+
+    def test_ein_not_confused_with_phone(self):
+        result = expand_term_variants(["12-3456789"])
+        # Should not produce phone-like variants
+        assert "(123) 456-789" not in result

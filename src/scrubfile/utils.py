@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import calendar
 import re
 from datetime import datetime
 from pathlib import Path
@@ -91,11 +92,42 @@ _PHONE_SPACED = re.compile(r"^\d{3} \d{3} \d{4}$")          # 555 123 4567
 _PHONE_PARENS = re.compile(r"^\(\d{3}\)\s?\d{3}-\d{4}$")    # (555)123-4567 or (555) 123-4567
 _PHONE_PLAIN = re.compile(r"^\d{10}$")                       # 5551234567
 
+# Month name lookup tables for date parsing
+_FULL_MONTHS = {name.lower(): num for num, name in enumerate(calendar.month_name) if name}
+_ABBR_MONTHS = {abbr.lower(): num for num, abbr in enumerate(calendar.month_abbr) if abbr}
+
+# Regex for dates in various formats
+_DATE_SLASH = re.compile(r"^(\d{1,2})/(\d{1,2})/(\d{4})$")
+_DATE_DASH_MDY = re.compile(r"^(\d{1,2})-(\d{1,2})-(\d{4})$")
+_DATE_DOT = re.compile(r"^(\d{1,2})\.(\d{1,2})\.(\d{4})$")
+_DATE_ISO = re.compile(r"^(\d{4})-(\d{1,2})-(\d{1,2})$")
+_DATE_MONTH_FIRST = re.compile(
+    r"^([A-Za-z]+)\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})$"
+)
+_DATE_DAY_FIRST = re.compile(
+    r"^(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+),?\s+(\d{4})$"
+)
+_DATE_SLASH_SHORT = re.compile(r"^(\d{1,2})/(\d{1,2})/(\d{2})$")
+_DATE_DASH_SHORT = re.compile(r"^(\d{1,2})-(\d{1,2})-(\d{2})$")
+_DATE_PLAIN8 = re.compile(r"^\d{8}$")
+
+# Regex for credit card numbers (13-19 digits)
+_CC_PLAIN = re.compile(r"^\d{13,19}$")
+_CC_DASHED4 = re.compile(r"^\d{4}-\d{4}-\d{4}-\d{1,7}$")
+_CC_SPACED4 = re.compile(r"^\d{4} \d{4} \d{4} \d{1,7}$")
+_CC_AMEX_DASH = re.compile(r"^\d{4}-\d{6}-\d{5}$")
+_CC_AMEX_SPACE = re.compile(r"^\d{4} \d{6} \d{5}$")
+
+# Regex for EIN (Employer Identification Number): XX-XXXXXXX or 9 digits
+_EIN_DASHED = re.compile(r"^\d{2}-\d{7}$")
+_EIN_PLAIN = re.compile(r"^\d{9}$")
+
 
 def expand_term_variants(terms: list[str]) -> list[str]:
     """Expand terms to include common format variants.
 
-    For SSN-like and phone-like terms, generates all common format variants.
+    For SSN-like, phone-like, date-like, credit-card-like, and EIN-like
+    terms, generates all common format variants.
     Deduplicates while preserving order.
     """
     seen: set[str] = set()
@@ -107,8 +139,14 @@ def expand_term_variants(terms: list[str]) -> list[str]:
         seen.add(term)
         expanded.append(term)
 
-        # Generate variants (SSN, phone)
-        for v in _ssn_variants(term) + _phone_variants(term):
+        variants = (
+            _ssn_variants(term)
+            + _phone_variants(term)
+            + _date_variants(term)
+            + _cc_variants(term)
+            + _ein_variants(term)
+        )
+        for v in variants:
             if v not in seen:
                 seen.add(v)
                 expanded.append(v)
@@ -218,3 +256,191 @@ def _phone_variants(term: str) -> list[str]:
     ]
     # Return only variants that aren't the original term
     return [v for v in variants if v != stripped]
+
+
+# ---------------------------------------------------------------------------
+# Date helpers
+# ---------------------------------------------------------------------------
+
+def _safe_date(year: int, month: int, day: int) -> datetime | None:
+    """Construct a datetime, returning None for invalid dates."""
+    try:
+        return datetime(year, month, day)
+    except (ValueError, OverflowError):
+        return None
+
+
+def _resolve_month(name: str) -> int | None:
+    """Resolve a full or abbreviated month name to its number (1-12)."""
+    lower = name.lower()
+    return _FULL_MONTHS.get(lower) or _ABBR_MONTHS.get(lower)
+
+
+def _parse_date_term(term: str) -> datetime | None:
+    """Try to parse a term as a date in any common format."""
+    s = term.strip()
+
+    # ISO: YYYY-MM-DD (check before dash-MDY to avoid ambiguity)
+    m = _DATE_ISO.match(s)
+    if m:
+        return _safe_date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+
+    # MM/DD/YYYY
+    m = _DATE_SLASH.match(s)
+    if m:
+        return _safe_date(int(m.group(3)), int(m.group(1)), int(m.group(2)))
+
+    # MM-DD-YYYY
+    m = _DATE_DASH_MDY.match(s)
+    if m:
+        return _safe_date(int(m.group(3)), int(m.group(1)), int(m.group(2)))
+
+    # MM.DD.YYYY
+    m = _DATE_DOT.match(s)
+    if m:
+        return _safe_date(int(m.group(3)), int(m.group(1)), int(m.group(2)))
+
+    # Month DD, YYYY  /  Mon DD, YYYY  /  Dec. 12th, 2023
+    m = _DATE_MONTH_FIRST.match(s)
+    if m:
+        mo = _resolve_month(m.group(1))
+        if mo is not None:
+            return _safe_date(int(m.group(3)), mo, int(m.group(2)))
+
+    # DD Month YYYY  /  12th Dec 2023
+    m = _DATE_DAY_FIRST.match(s)
+    if m:
+        mo = _resolve_month(m.group(2))
+        if mo is not None:
+            return _safe_date(int(m.group(3)), mo, int(m.group(1)))
+
+    # MM/DD/YY
+    m = _DATE_SLASH_SHORT.match(s)
+    if m:
+        yy = int(m.group(3))
+        year = 2000 + yy if yy < 69 else 1900 + yy
+        return _safe_date(year, int(m.group(1)), int(m.group(2)))
+
+    # MM-DD-YY
+    m = _DATE_DASH_SHORT.match(s)
+    if m:
+        yy = int(m.group(3))
+        year = 2000 + yy if yy < 69 else 1900 + yy
+        return _safe_date(year, int(m.group(1)), int(m.group(2)))
+
+    # 8 plain digits: try MMDDYYYY first, then YYYYMMDD
+    if _DATE_PLAIN8.match(s):
+        dt = _safe_date(int(s[4:]), int(s[:2]), int(s[2:4]))
+        if dt:
+            return dt
+        return _safe_date(int(s[:4]), int(s[4:6]), int(s[6:]))
+
+    return None
+
+
+def _date_variants(term: str) -> list[str]:
+    """If term looks like a date, return all format variants."""
+    dt = _parse_date_term(term)
+    if dt is None:
+        return []
+
+    mo, d, y = dt.month, dt.day, dt.year
+    month_full = calendar.month_name[mo]
+    month_abbr = calendar.month_abbr[mo]
+    yy = y % 100
+
+    candidates = [
+        f"{mo:02d}/{d:02d}/{y}",
+        f"{mo}/{d}/{y}",
+        f"{mo:02d}-{d:02d}-{y}",
+        f"{mo:02d}.{d:02d}.{y}",
+        f"{y}-{mo:02d}-{d:02d}",
+        f"{month_full} {d}, {y}",
+        f"{month_abbr} {d}, {y}",
+        f"{month_abbr}. {d}, {y}",
+        f"{d} {month_full} {y}",
+        f"{d} {month_abbr} {y}",
+        f"{mo:02d}/{d:02d}/{yy:02d}",
+        f"{mo:02d}-{d:02d}-{yy:02d}",
+        f"{mo:02d}{d:02d}{y}",
+        f"{y}{mo:02d}{d:02d}",
+    ]
+
+    seen: set[str] = set()
+    unique: list[str] = []
+    original = term.strip()
+    for c in candidates:
+        if c not in seen and c != original:
+            seen.add(c)
+            unique.append(c)
+    return unique
+
+
+# ---------------------------------------------------------------------------
+# Credit-card helpers
+# ---------------------------------------------------------------------------
+
+def _extract_cc_digits(term: str) -> str | None:
+    """Extract digits from a credit-card-like term, or return None."""
+    stripped = term.strip()
+
+    if _CC_PLAIN.match(stripped):
+        return stripped
+    if _CC_DASHED4.match(stripped) or _CC_AMEX_DASH.match(stripped):
+        return stripped.replace("-", "")
+    if _CC_SPACED4.match(stripped) or _CC_AMEX_SPACE.match(stripped):
+        return stripped.replace(" ", "")
+    return None
+
+
+def _cc_variants(term: str) -> list[str]:
+    """If term looks like a credit card number, return all format variants."""
+    digits = _extract_cc_digits(term)
+    if digits is None:
+        return []
+
+    n = len(digits)
+    stripped = term.strip()
+    candidates: list[str] = [digits]
+
+    if n == 15:
+        # Amex: 4-6-5 grouping
+        candidates += [
+            f"{digits[:4]}-{digits[4:10]}-{digits[10:]}",
+            f"{digits[:4]} {digits[4:10]} {digits[10:]}",
+        ]
+    if n == 16:
+        # Standard: 4-4-4-4 grouping
+        g = [digits[i:i + 4] for i in range(0, 16, 4)]
+        candidates += [
+            "-".join(g),
+            " ".join(g),
+        ]
+    if n not in (15, 16):
+        # Generic: 4-4-4-rest grouping for other lengths
+        g = [digits[i:i + 4] for i in range(0, n, 4)]
+        candidates += [
+            "-".join(g),
+            " ".join(g),
+        ]
+
+    return [v for v in candidates if v != stripped]
+
+
+# ---------------------------------------------------------------------------
+# EIN helpers
+# ---------------------------------------------------------------------------
+
+def _ein_variants(term: str) -> list[str]:
+    """If term looks like an EIN, return the other format variant.
+
+    EINs are 9 digits in XX-XXXXXXX format.  Because plain 9-digit strings
+    are also handled by ``_ssn_variants``, this function only activates on
+    the *dashed* EIN form (2-7 grouping) so it doesn't conflict.
+    """
+    stripped = term.strip()
+
+    if _EIN_DASHED.match(stripped):
+        return [stripped.replace("-", "")]
+
+    return []
