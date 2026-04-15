@@ -41,6 +41,9 @@ python -m spacy download en_core_web_lg
 # Redact specific terms
 scrubfile document.pdf -r "John Doe" -r "123-45-6789"
 
+# Redact terms from a file (one per line)
+scrubfile document.pdf -f redact.txt -o redacted_output.pdf
+
 # Auto-detect all PII (names, SSNs, emails, phones, addresses, ...)
 scrubfile document.pdf --auto
 
@@ -72,7 +75,7 @@ print(result.output_path)       # document_redacted_20260330_120000.pdf
 | Metadata scrubbing | PDF metadata, XMP, EXIF, DOCX properties — all cleared |
 | OCR support | Redact scanned documents and images via EasyOCR or Tesseract |
 | Thorough mode | `--thorough` also redacts name fragments ("John", "J. Doe") to prevent inference |
-| Term expansion | Provide one SSN/phone format, all variants searched automatically |
+| Term expansion | Provide one SSN/phone/date/credit-card format, all variants searched automatically |
 | JSON output | Machine-readable output for pipelines and automation |
 | MCP server | AI agents can call scrubfile directly (see below) |
 | Privacy-safe output | Detected PII is never echoed in CLI, JSON, or MCP output |
