@@ -19,3 +19,5 @@ PII-auto-model/
 form_downloaders/
 docs/PII_DETECTION_MODEL_REPORT.md
 docs/plans/
+.github/copilot-instructions.md
+examples/
