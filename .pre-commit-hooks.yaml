@@ -1,0 +1,14 @@
+# .pre-commit-hooks.yaml
+- id: scrubfile-fast
+  name: Scan PDFs/DOCX for explicit PII terms
+  entry: python -m scrubfile.cli --redact-file pii_terms.txt --preview
+  language: system
+  files: \.(pdf|docx)$
+  stages: [commit]
+
+- id: scrubfile-thorough
+  name: Scan PDFs/DOCX for auto-detected PII
+  entry: python -m scrubfile.cli --auto --preview
+  language: system
+  files: \.(pdf|docx)$
+  stages: [commit]
