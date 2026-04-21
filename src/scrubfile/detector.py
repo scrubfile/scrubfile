@@ -94,7 +94,9 @@ SUPPORTED_ENTITY_TYPES = [
     "IP_ADDRESS",
     "URL",
     "LOCATION",
+    "STREET_ADDRESS",
     "DATE_TIME",
+    "DATE_OF_BIRTH",
     "NRP",  # nationality, religion, political group
     "US_DRIVER_LICENSE",
     "US_PASSPORT",

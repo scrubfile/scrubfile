@@ -103,3 +103,29 @@ class TestSupportedEntityTypes:
         assert "US_SSN" in SUPPORTED_ENTITY_TYPES
         assert "CREDIT_CARD" in SUPPORTED_ENTITY_TYPES
         assert "LOCATION" in SUPPORTED_ENTITY_TYPES
+
+    def test_street_address_and_dob_listed(self):
+        assert "STREET_ADDRESS" in SUPPORTED_ENTITY_TYPES
+        assert "DATE_OF_BIRTH" in SUPPORTED_ENTITY_TYPES
+
+
+@pytest.mark.slow
+class TestStreetAddressEntity:
+    """Verifies street addresses are emitted as STREET_ADDRESS (not LOCATION)."""
+
+    def test_detects_as_street_address(self):
+        text = "Ship to 123 Main Street for delivery."
+        results = detect_pii(text, threshold=0.3)
+
+        street_matches = [r for r in results if r.entity_type == "STREET_ADDRESS"]
+        assert len(street_matches) >= 1, results
+        assert any("123 Main Street" in r.text for r in street_matches)
+
+    def test_street_address_not_emitted_as_location(self):
+        """Regression: ensure the street address recognizer no longer emits LOCATION."""
+        text = "Ship to 456 Oak Avenue for delivery."
+        results = detect_pii(text, threshold=0.3, entity_types=["STREET_ADDRESS"])
+
+        assert any("456 Oak Avenue" in r.text for r in results)
+        for r in results:
+            assert r.entity_type == "STREET_ADDRESS"
