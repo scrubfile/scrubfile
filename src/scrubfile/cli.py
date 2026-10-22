@@ -107,7 +107,7 @@ def redact(
 ) -> None:
     """Redact PII from a document.
 
-    Supports PDF, PNG, JPEG, TIFF, BMP, and DOCX files.
+    Supports PDF, PNG, JPEG, TIFF, BMP, DOCX, and XLSX files.
     Provide terms via --redact / --redact-file, or use --auto for NLP-based detection.
     """
     # Collect all terms

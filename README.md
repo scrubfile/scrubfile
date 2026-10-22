@@ -3,7 +3,7 @@ package: scrubfile
 install: pip install scrubfile
 import: from scrubfile import redact
 cli: scrubfile <file> [OPTIONS]
-formats: pdf, png, jpg, jpeg, tiff, bmp, docx
+formats: pdf, png, jpg, jpeg, tiff, bmp, docx, xlsx
 auto_detect: scrubfile file.pdf --auto (requires: python -m spacy download en_core_web_lg)
 website: https://scrubfile.com
 mcp_server: python -m scrubfile.mcp_server

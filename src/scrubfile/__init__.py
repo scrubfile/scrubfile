@@ -134,6 +134,18 @@ def redact(
             metadata_cleared=r.metadata_cleared,
         )
 
+    elif suffix == ".xlsx":
+        from scrubfile.xlsx_redactor import redact_xlsx
+
+        r = redact_xlsx(input_path, output_path, terms)
+        return RedactionResult(
+            input_path=r.input_path,
+            output_path=r.output_path,
+            total_redactions=r.total_redactions,
+            terms_found=r.terms_found,
+            metadata_cleared=r.metadata_cleared,
+        )
+
     else:
         raise ValueError(f"Unsupported file type: {suffix}")
 
@@ -193,6 +205,18 @@ def _extract_text(input_path: Path, suffix: str, ocr_engine: str) -> str:
                 for cell in row.cells:
                     paragraphs.append(cell.text)
         return "\n".join(paragraphs)
+
+    elif suffix == ".xlsx":
+        import openpyxl
+
+        wb = openpyxl.load_workbook(str(input_path), data_only=True)
+        texts: list[str] = []
+        for ws in wb.worksheets:
+            for row in ws.iter_rows():
+                for cell in row:
+                    if isinstance(cell.value, str):
+                        texts.append(cell.value)
+        return "\n".join(texts)
 
     else:
         raise ValueError(f"Cannot extract text from: {suffix}")

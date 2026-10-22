@@ -9,7 +9,7 @@ from pathlib import Path
 
 MAX_FILE_SIZE_MB = 100
 
-SUPPORTED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp", ".docx"}
+SUPPORTED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".tiff", ".tif", ".bmp", ".docx", ".xlsx"}
 
 
 def validate_input_file(path: str | Path) -> Path:
